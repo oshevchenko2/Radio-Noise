@@ -6,7 +6,7 @@ namespace TerrainGenerator
     [Serializable]
     public class MeshData
     {
-        public Vector3[] Vertices;
+        public SerializableVector3[] Vertices;
         public int[] Triangles;
     }
 }
