@@ -148,6 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d7e03bde89b06c543b0533f12e296e40, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Terrain: {fileID: 1310858869}
 --- !u!4 &20248321
 Transform:
   m_ObjectHideFlags: 0
@@ -927,9 +928,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ChunkSize: 32
-  ChunkHeight: 16
+  ChunkHeight: 32
   WorldSize: 32
-  WorldVerticalOffset: 1
+  WorldVerticalOffset: 0
   TerrainScale: 10
   IsoLevel: 6
   DesertMaterial: {fileID: 2100000, guid: 711174b98d2b3d84782c713f9caf5714, type: 2}
@@ -938,7 +939,6 @@ MonoBehaviour:
   SwampMaterial: {fileID: 2100000, guid: 0eaaae7cc3fe00a488af4398ea2ed76d, type: 2}
   MountainsMaterial: {fileID: 2100000, guid: 2a6c63c1bcb7fe44bbc2be083c8a9a6d, type: 2}
   StoneMaterial: {fileID: 2100000, guid: f1888d1f95dbd7247955beee78a3e849, type: 2}
-  _marchingShader: {fileID: 7200000, guid: 5bb07ede06fd197448241632d30f6558, type: 3}
 --- !u!23 &1310858870
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1019,7 +1019,6 @@ GameObject:
   - component: {fileID: 1823688466}
   - component: {fileID: 1823688465}
   - component: {fileID: 1823688468}
-  - component: {fileID: 1823688469}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1240,18 +1239,6 @@ MonoBehaviour:
       enableFptlForForwardOpaque: 0
       enableBigTilePrepass: 0
       isFptlEnabled: 0
---- !u!114 &1823688469
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1823688464}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 535654aec08604f41a11269c9a7c213b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &2013410473
 GameObject:
   m_ObjectHideFlags: 1

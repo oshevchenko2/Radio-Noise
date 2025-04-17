@@ -1,46 +1,48 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Threading.Tasks;
+using Unity.Entities;
 using UnityEngine;
 
 namespace TerrainGenerator
 {
+    [System.Serializable]
     public class WorldSaveSystem : MonoBehaviour
     {
-        /*
-        public static WorldSaveSystem Instance { get; private set; }
         public VoxelTerrain Terrain;
         private string _filePath;
 
-        void Awake()
+        private void Awake()
         {
             _filePath = Path.Combine(Application.persistentDataPath, "world.radionoise");
-            CreateInstance();
         }
 
-        void CreateInstance()
+        private void Update()
         {
-            if (Instance != null && Instance != this)
+            if(Input.GetKeyDown(KeyCode.F3))
             {
-                Destroy(gameObject);
-                return;
+                SaveWorld();
             }
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
+            else if(Input.GetKeyDown(KeyCode.F9))
+            {
+                LoadWorld();
+            }
+            else return;
         }
 
-        public async void SaveWorld()
+        public void SaveWorld()
         {
-            if (Terrain == null)
+            if(Terrain == null)
             {
-                Debug.LogError("Terrain is null");
+                Debug.LogError("0xFFFFF");
                 return;
             }
 
-            WorldData data = new WorldData
+            WorldData Data = new()
             {
                 SeedX = Terrain.GetSeedX(),
                 SeedZ = Terrain.GetSeedZ(),
@@ -51,12 +53,13 @@ namespace TerrainGenerator
             Dictionary<Vector2Int, BiomeType> biomeMap = Terrain.GetBiomeMap();
             foreach (var kvp in biomeMap)
             {
-                data.BiomeMapEntries.Add(new BiomeMapEntry
+                BiomeMapEntry entry = new()
                 {
                     ChunkX = kvp.Key.x,
                     ChunkZ = kvp.Key.y,
                     BiomeType = (int)kvp.Value
-                });
+                };
+                Data.BiomeMapEntries.Add(entry);
             }
 
             Dictionary<Vector2Int, GameObject> chunks = Terrain.GetChunks();
@@ -64,7 +67,7 @@ namespace TerrainGenerator
             {
                 Vector2Int coord = kvp.Key;
                 GameObject chunkObj = kvp.Value;
-                ChunkData chunkData = new ChunkData
+                ChunkData chunkData = new()
                 {
                     ChunkX = coord.x,
                     ChunkZ = coord.y
@@ -80,7 +83,7 @@ namespace TerrainGenerator
                     if (mf != null && mf.mesh != null)
                         chunkData.BottomMesh = MeshToMeshData(mf.mesh);
                 }
-
+                
                 if (caveTransform != null)
                 {
                     MeshFilter mf = caveTransform.GetComponent<MeshFilter>();
@@ -94,80 +97,91 @@ namespace TerrainGenerator
                     if (mf != null && mf.mesh != null)
                         chunkData.TopMesh = MeshToMeshData(mf.mesh);
                 }
-
-                data.ChunkDatas.Add(chunkData);
+                Data.ChunkDatas.Add(chunkData);
             }
-
-            await Task.Run(() =>
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-                using FileStream stream = new FileStream(_filePath, FileMode.Create);
-                using GZipStream gzStream = new GZipStream(stream, CompressionMode.Compress);
-                formatter.Serialize(gzStream, data);
-            });
-
-            Debug.Log("Saved: " + _filePath);
+            File.WriteAllBytes(_filePath,  ObjectToByteArray(Data));
+            Debug.Log("Saved to " + _filePath);
+            Debug.Log(ObjectToByteArray(Data));
         }
 
-        MeshData MeshToMeshData(Mesh mesh)
+        private MeshData MeshToMeshData(Mesh mesh)
         {
-            return new MeshData
+            MeshData mData = new()
             {
-                Vertices = mesh.vertices.Select(v => new SerializableVector3(v)).ToArray(),
+                Vertices = mesh.vertices.Select(sv => new SerializableVector3(sv)).ToArray(),
                 Triangles = mesh.triangles
             };
+            return mData;
         }
 
-        public async void LoadWorld()
+        public void LoadWorld()
         {
             if (!File.Exists(_filePath))
             {
-                Debug.LogError("Save not found");
+                Debug.LogError("0xAAAFF");
                 return;
             }
 
-            WorldData data = null;
-            await Task.Run(() =>
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-                using FileStream stream = new FileStream(_filePath, FileMode.Open);
-                using GZipStream gzStream = new GZipStream(stream, CompressionMode.Decompress);
-                data = formatter.Deserialize(gzStream) as WorldData;
-            });
+            WorldData data = ByteArrayToObject<WorldData>(File.ReadAllBytes(_filePath));
+            Debug.Log(File.ReadAllBytes(_filePath));
+
+            
 
             if (data == null)
             {
-                Debug.LogError("Serializable data is null");
+                Debug.LogError("0xAAAAF");
                 return;
             }
+
             if (Terrain == null)
             {
-                Debug.LogError("Terrain is null");
+                Debug.LogError("0xFFFFF");
                 return;
             }
 
-            StartCoroutine(Terrain.DestroyAllChunksAsync());
+            StartCoroutine(Terrain.DestroyAllChunks());
             Terrain.SetSeed(data.SeedX, data.SeedZ);
             Terrain.LoadBiomeMap(ConvertBiomeMap(data.BiomeMapEntries));
-
+            
             foreach (ChunkData chunkData in data.ChunkDatas)
             {
-                Vector2Int coord = new Vector2Int(chunkData.ChunkX, chunkData.ChunkZ);
-                StartCoroutine(Terrain.RecreateChunkAsync(coord, chunkData));
+                Vector2Int coord = new(chunkData.ChunkX, chunkData.ChunkZ);
+                StartCoroutine(Terrain.RecreateChunk(coord, chunkData));
+
             }
 
-            Debug.Log("WorldLoaded: " + _filePath);
+            Debug.Log("World loaded from " + _filePath);
         }
 
-        Dictionary<Vector2Int, BiomeType> ConvertBiomeMap(List<BiomeMapEntry> entries)
+        private Dictionary<Vector2Int, BiomeType> ConvertBiomeMap(List<BiomeMapEntry> entries)
         {
-            Dictionary<Vector2Int, BiomeType> map = new Dictionary<Vector2Int, BiomeType>();
+            Dictionary<Vector2Int, BiomeType> map = new();
             foreach (BiomeMapEntry entry in entries)
             {
-                Vector2Int coord = new Vector2Int(entry.ChunkX, entry.ChunkZ);
+                Vector2Int coord = new(entry.ChunkX, entry.ChunkZ);
                 map[coord] = (BiomeType)entry.BiomeType;
             }
             return map;
-        }*/
+        }
+        public static byte[] ObjectToByteArray(object obj) 
+        {
+            using (MemoryStream ms = new MemoryStream()) 
+            using (GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true))
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                bf.Serialize(zs, obj);
+                return ms.ToArray();
+            }
+        }
+
+        public static T ByteArrayToObject<T>(byte[] data)
+        {
+            using (MemoryStream ms = new MemoryStream(data)) 
+            using (GZipStream zs = new GZipStream(ms, CompressionMode.Decompress, true))
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                return (T)bf.Deserialize(zs);
+            }
+        }
     }
 }
