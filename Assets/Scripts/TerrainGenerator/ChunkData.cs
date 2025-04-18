@@ -13,6 +13,7 @@ namespace TerrainGenerator
         public MeshData BottomMesh;
         public MeshData CaveMesh;
         public MeshData TopMesh;
+
         internal int chunkX;
     }
 }

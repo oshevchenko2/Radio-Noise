@@ -35,7 +35,7 @@ public struct DensityFieldJob : IJobParallelFor
         float baseHeight = elevationNoise * HeightMultiplier;
 
         float bottomThreshold = baseHeight - (TopThickness + CaveThickness);
-        float density = worldY - baseHeight;
+        float density = baseHeight - worldY;
 
         if (worldY < bottomThreshold)
             DensityField[index] = density;

@@ -5,20 +5,20 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Burst;
 using UnityEngine.SearchService;
-using System;
-using Random = UnityEngine.Random;
-using UnityEditor.SearchService;
-using UnityEngine.SceneManagement;
 using System.Collections;
+using Unity.Mathematics;
+using Unity.Entities.UniversalDelegates;
+using UnityEngine.SceneManagement;
 
 namespace TerrainGenerator
 {
-    [Serializable]
     public class VoxelTerrain : MonoBehaviour
     {
         public int ChunkSize = 16;
-        public int ChunkHeight = 128;
+
         public int WorldSize = 256;
+
+        private int ChunkHeight = 32;
 
         public float WorldVerticalOffset = 0f;
 
@@ -37,8 +37,8 @@ namespace TerrainGenerator
         private Dictionary<Vector2Int, BiomeType> _biomeMap = new();
         private float _seedX, _seedZ;
 
-        private readonly float _topThickness = 5f;
-        private readonly float _caveThickness = 5f;
+        private readonly float _topThickness = 1f;
+        private readonly float _caveThickness = 20f;
 
         public float GetSeedX() { return _seedX; }
         public float GetSeedZ() { return _seedZ; }
@@ -46,97 +46,74 @@ namespace TerrainGenerator
         public Dictionary<Vector2Int, GameObject> GetChunks() { return _chunkObjects; }
         public void SetSeed(float x, float z) { _seedX = x; _seedZ = z; }
         public void LoadBiomeMap(Dictionary<Vector2Int, BiomeType> newMap) { _biomeMap = newMap; }
+
+        private static readonly Queue<Mesh> _meshPool = new();
+        private const int INITIAL_POOL_SIZE = 50;
+
         public IEnumerator DestroyAllChunks()
-                {
-                    while (_chunkObjects.Count > 0)
-                    {
-                        var key = _chunkObjects.Keys.First();
-                        Destroy(_chunkObjects[key]);
-                        _chunkObjects.Remove(key);
-                    }
-                        yield return null;
-                }
+        {
+            while (_chunkObjects.Count > 0)
+            {
+                var key = _chunkObjects.Keys.First();
+                Destroy(_chunkObjects[key]);
+                _chunkObjects.Remove(key);
+            }
+            
+            yield return null;
+        }
 
-                public IEnumerator RecreateChunk(Vector2Int chunkCoord, ChunkData data)
-                {
+        public IEnumerator RecreateChunk(Vector2Int chunkCoord, ChunkData data)
+        {
+            GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
+            chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
+            _chunkObjects[chunkCoord] = chunkObject;
 
-                    /*if (data.BottomMesh != null)
-                    {
-                        GameObject bottomObj = new("BottomLayer");
-                        bottomObj.transform.parent = chunkObject.transform;
-                        bottomObj.transform.localPosition = Vector3.zero;
-                        MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
-                        bottomRend.material = StoneMaterial;
-                        MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
-                        bottomMF.mesh = MeshDataToMesh(data.BottomMesh);
-                        yield return null;
-                    }
+            float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
+            float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
+            Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
+            var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
+            BiomeType dominantBiome0 = sortedWeights[0].Key;
+            BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
 
-                    if (data.CaveMesh != null)
-                    {
-                        GameObject caveObj = new("CaveLayer");
-                        caveObj.transform.parent = chunkObject.transform;
-                        caveObj.transform.localPosition = Vector3.zero;
-                        MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
-                        caveRend.material = StoneMaterial;
-                        MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
-                        caveMF.mesh = MeshDataToMesh(data.CaveMesh);
-                        yield return null;
-                    }
+            GameObject bottomObj = new("BottomLayer");
+            bottomObj.transform.parent = chunkObject.transform;
+            bottomObj.transform.localPosition = Vector3.zero;
+            MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
+            bottomRend.material = StoneMaterial;
+            MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
+            bottomMF.mesh = MeshDataToMesh(data.BottomMesh);
 
-                    if (data.TopMesh != null)
-                    {
-                        GameObject topObj = new("TopLayer");
-                        topObj.transform.parent = chunkObject.transform;
-                        topObj.transform.localPosition = Vector3.zero;
-                        MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
-                        MeshFilter topMF = topObj.AddComponent<MeshFilter>();
-                        topMF.mesh = MeshDataToMesh(data.TopMesh);
-                        yield return null;
-                    }*/
-                    //GenerateDensityField(chunkCoord, out float[,,] bottomField, out float[,,] caveField, out float[,,] topField);
+            GameObject caveObj = new("CaveLayer");
+            caveObj.transform.parent = chunkObject.transform;
+            caveObj.transform.localPosition = Vector3.zero;
+            MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
+            caveRend.material = StoneMaterial;
+            MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
+            bottomMF.mesh = MeshDataToMesh(data.CaveMesh);
 
-                    GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
-                    chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
-                    _chunkObjects[chunkCoord] = chunkObject;
+            GameObject topObj = new("TopLayer");
+            topObj.transform.parent = chunkObject.transform;
+            topObj.transform.localPosition = Vector3.zero;
+            MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
+            MeshFilter topMF = topObj.AddComponent<MeshFilter>();
+            
+            if (dominantBiome0 == dominantBiome1)
+            {
+                topRend.material = GetMaterialForBiome(dominantBiome0);
+                topMF.mesh = MeshDataToMesh(data.TopMesh);
+            }
+            else
+            {
+                Material mat0 = GetMaterialForBiome(dominantBiome0);
+                Material mat1 = GetMaterialForBiome(dominantBiome1);
+                topRend.materials = new Material[] { mat0, mat1 };
+                topMF.mesh = MeshDataToMesh(data.TopMesh);
+            }
 
-                    GameObject bottomObj = new("BottomLayer");
-                    bottomObj.transform.parent = chunkObject.transform;
-                    bottomObj.transform.localPosition = Vector3.zero;
-                    MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
-                    bottomRend.material = StoneMaterial;
-                    MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
-                    bottomMF.mesh = MeshDataToMesh(data.BottomMesh);
+            yield return null;
+        }
 
-                    GameObject caveObj = new("CaveLayer");
-                    caveObj.transform.parent = chunkObject.transform;
-                    caveObj.transform.localPosition = Vector3.zero;
-                    MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
-                    caveRend.material = StoneMaterial;
-                    MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
-                    caveMF.mesh = MeshDataToMesh(data.CaveMesh);
-
-                    GameObject topObj = new("TopLayer");
-                    topObj.transform.parent = chunkObject.transform;
-                    topObj.transform.localPosition = Vector3.zero;
-                    MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
-                    MeshFilter topMF = topObj.AddComponent<MeshFilter>();
-
-                    float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
-                    float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
-                    Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
-                    var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
-                    BiomeType dominantBiome0 = sortedWeights[0].Key;
-                    BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
-
-                    Material mat0 = GetMaterialForBiome(dominantBiome0);
-                    Material mat1 = GetMaterialForBiome(dominantBiome1);
-                    topRend.materials = new Material[] { mat0, mat1 };
-
-                    topMF.mesh = MeshDataToMesh(data.TopMesh);
-                    yield return null;
-                }
-                private Mesh MeshDataToMesh(MeshData meshData)
+        private Mesh MeshDataToMesh(MeshData meshData)
         {
             Mesh mesh = new()
             {
@@ -147,12 +124,12 @@ namespace TerrainGenerator
             return mesh;
         }
 
-
-
         void Start()
         {
-            _seedX = Random.Range(-10000f, 10000f);
-            _seedZ = Random.Range(-10000f, 10000f);
+            InitializeMeshPool();
+
+            _seedX = UnityEngine.Random.Range(-10000f, 10000f);
+            _seedZ = UnityEngine.Random.Range(-10000f, 10000f);
 
             GenerateBiomeMap();
             GenerateWorld();
@@ -162,80 +139,77 @@ namespace TerrainGenerator
         {
             if(Input.GetKeyDown(KeyCode.F6))
             {
-                SceneManager.LoadScene(0);       
+                SceneManager.LoadSceneAsync(0);       
+            }
+        }
+
+        void InitializeMeshPool()
+        {
+            for (int i = 0; i < INITIAL_POOL_SIZE; i++)
+            {
+                _meshPool.Enqueue(new Mesh());
+            }
+        }
+
+        [BurstCompile]
+        struct BiomeGenerationJob : IJobParallelFor
+        {
+            public int numChunks;
+            public float seedX, seedZ;
+            public NativeArray<BiomeType> biomeMap;
+
+            public void Execute(int index)
+            {
+                int x = index / numChunks;
+                int z = index % numChunks;
+                
+                float elevation = noise.cnoise(new float2((x + seedX) * 0.05f, (z + seedZ) * 0.05f));
+                float temperature = noise.cnoise(new float2((x + seedX) * 0.03f, (z + seedZ) * 0.03f));
+                float humidity = noise.cnoise(new float2((x + seedX) * 0.03f, (z + seedZ) * 0.03f));
+
+                biomeMap[index] = DetermineBiome(elevation, temperature, humidity);
+            }
+
+            readonly BiomeType DetermineBiome(float elevation, float temperature, float humidity)
+            {
+                if (elevation > 0.8f)
+                return BiomeType.Mountains;
+
+                if (humidity < 0.3f && temperature > 0.6f)
+                    return BiomeType.Desert;
+
+                if (humidity > 0.7f && temperature > 0.5f)
+                    return BiomeType.Swamp;
+
+                if (humidity > 0.5f && temperature > 0.4f)
+                    return BiomeType.Forest;
+
+                return BiomeType.Plains;
             }
         }
 
         void GenerateBiomeMap()
         {
             int numChunks = WorldSize / ChunkSize;
-
-            float[,] elevationMap = new float[numChunks, numChunks];
-            float[,] temperatureMap = new float[numChunks, numChunks];
-            float[,] humidityMap = new float[numChunks, numChunks];
-
-            for (int x = 0; x < numChunks; x++)
+            var biomeJob = new BiomeGenerationJob
             {
-                for (int z = 0; z < numChunks; z++)
-                {
-                    elevationMap[x, z] = Mathf.PerlinNoise((x + _seedX) * 0.05f, (z + _seedZ) * 0.05f);
-                    temperatureMap[x, z] = Mathf.PerlinNoise((x + _seedX) * 0.03f, (z + _seedZ) * 0.03f);
-                    humidityMap[x, z] = Mathf.PerlinNoise((x + _seedX) * 0.03f, (z + _seedZ) * 0.03f);
-                }
+                numChunks = numChunks,
+                seedX = _seedX,
+                seedZ = _seedZ,
+                biomeMap = new NativeArray<BiomeType>(numChunks * numChunks, Allocator.TempJob)
+            };
+
+            JobHandle handle = biomeJob.Schedule(numChunks * numChunks, 64);
+            handle.Complete();
+
+            for (int i = 0; i < biomeJob.biomeMap.Length; i++)
+            {
+                int x = i / numChunks;
+                int z = i % numChunks;
+                _biomeMap[new Vector2Int(x, z)] = biomeJob.biomeMap[i];
             }
 
-            for (int x = 0; x < numChunks; x++)
-            {
-                for (int z = 0; z < numChunks; z++)
-                {
-                    float avgElevation = 0f;
-                    float avgTemperature = 0f;
-                    float avgHumidity = 0f;
-                    int count = 0;
-
-                    for (int dx = -1; dx <= 1; dx++)
-                    {
-                        for (int dz = -1; dz <= 1; dz++)
-                        {
-                            int nx = x + dx;
-                            int nz = z + dz;
-
-                            if (nx >= 0 && nx < numChunks && nz >= 0 && nz < numChunks)
-                            {
-                                avgElevation += elevationMap[nx, nz];
-                                avgTemperature += temperatureMap[nx, nz];
-                                avgHumidity += humidityMap[nx, nz];
-                                count++;
-                            }
-                        }
-                    }
-
-                    avgElevation /= count;
-                    avgTemperature /= count;
-                    avgHumidity /= count;
-
-                    Vector2Int chunkCoord = new(x, z);
-                    BiomeType biome = DetermineBiome(avgElevation, avgTemperature, avgHumidity);
-                    _biomeMap[chunkCoord] = biome;
-                }
-            }
-        }
-
-        BiomeType DetermineBiome(float elevation, float temperature, float humidity)
-        {
-            if (elevation > 0.8f)
-                return BiomeType.Mountains;
-
-            if (humidity < 0.3f && temperature > 0.6f)
-                return BiomeType.Desert;
-
-            if (humidity > 0.7f && temperature > 0.5f)
-                return BiomeType.Swamp;
-
-            if (humidity > 0.5f && temperature > 0.4f)
-                return BiomeType.Forest;
-
-            return BiomeType.Plains;
+            biomeJob.biomeMap.Dispose();
         }
 
         void GenerateWorld()
@@ -252,7 +226,14 @@ namespace TerrainGenerator
 
         void GenerateChunk(Vector2Int chunkCoord)
         {
-            GenerateDensityField(chunkCoord, out float[,,] bottomField, out float[,,] caveField, out float[,,] topField);
+            float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
+            float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
+            Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
+            var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
+            BiomeType dominantBiome0 = sortedWeights[0].Key;
+            BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
+
+            GenerateDensityField(chunkCoord, out float[,,] bottomField, out float[,,] caveField, out float[,,] topField, ChunkHeight);
 
             GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
             chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
@@ -279,22 +260,26 @@ namespace TerrainGenerator
             topObj.transform.localPosition = Vector3.zero;
             MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
             MeshFilter topMF = topObj.AddComponent<MeshFilter>();
-
-            float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
-            float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
-            Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
-            var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
-            BiomeType dominantBiome0 = sortedWeights[0].Key;
-            BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
-
-            Material mat0 = GetMaterialForBiome(dominantBiome0);
-            Material mat1 = GetMaterialForBiome(dominantBiome1);
-            topRend.materials = new Material[] { mat0, mat1 };
-
-            topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize), dominantBiome0, dominantBiome1);
+            
+            if (dominantBiome0 == dominantBiome1)
+            {
+                topRend.material = GetMaterialForBiome(dominantBiome0);
+                topMF.mesh = GenerateMesh(topField);
+            }
+            else
+            {
+                Material mat0 = GetMaterialForBiome(dominantBiome0);
+                Material mat1 = GetMaterialForBiome(dominantBiome1);
+                topRend.materials = new Material[] { mat0, mat1 };
+                topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize), dominantBiome0, dominantBiome1);
+            }
         }
 
-        void GenerateDensityField(Vector2Int chunkCoord, out float[,,] bottomField, out float[,,] caveField, out float[,,] topField)
+        void GenerateDensityField(Vector2Int chunkCoord, 
+                                    out float[,,] bottomField, 
+                                    out float[,,] caveField, 
+                                    out float[,,] topField,
+                                    int chunkHeight)
         {
             bottomField = new float[ChunkSize + 1, ChunkHeight + 1, ChunkSize + 1];
             caveField = new float[ChunkSize + 1, ChunkHeight + 1, ChunkSize + 1];
@@ -307,7 +292,7 @@ namespace TerrainGenerator
 
             for (int x = 0; x <= ChunkSize; x++)
             {
-                for (int y = 0; y <= ChunkHeight; y++)
+                for (int y = 0; y <= chunkHeight; y++)
                 {
                     for (int z = 0; z <= ChunkSize; z++)
                     {
@@ -323,7 +308,7 @@ namespace TerrainGenerator
 
                         float elevationNoise = Mathf.PerlinNoise((worldX + _seedX) * settings.noiseScale, (worldZ + _seedZ) * settings.noiseScale);
                         float baseHeight = elevationNoise * settings.heightMultiplier;
-                        float clampedBaseHeight = Mathf.Max(baseHeight, ChunkSize - 1);
+                        float clampedBaseHeight = Mathf.Min(baseHeight, ChunkSize - 1);
 
                         float density = worldY - clampedBaseHeight;
 
@@ -388,24 +373,49 @@ namespace TerrainGenerator
             }
         }
 
+        private Mesh GetMeshFromPool()
+        {
+            if (_meshPool.Count > 0)
+            {
+                Mesh mesh = _meshPool.Dequeue();
+                mesh.Clear();
+                return mesh;
+            }
+            return new Mesh();
+        }
+
+        private void ReleaseMeshToPool(Mesh mesh)
+        {
+            mesh.Clear();
+            _meshPool.Enqueue(mesh);
+        }
+
         Mesh GenerateMesh(float[,,] densityField)
         {
+            Mesh mesh = GetMeshFromPool();
             List<Vector3> vertices = new();
             List<int> triangles = new();
 
-            for (int x = 0; x < ChunkSize; x++)
+            int sizeX = densityField.GetLength(0);
+            int sizeY = densityField.GetLength(1);
+            int sizeZ = densityField.GetLength(2);
+
+            for (int x = 0; x < sizeX - 1; x++)
             {
-                for (int y = 0; y < ChunkHeight; y++)
+                for (int y = 0; y < sizeY - 1; y++)
                 {
-                    for (int z = 0; z < ChunkSize; z++)
+                    for (int z = 0; z < sizeZ - 1; z++)
                     {
                         MarchCube(new Vector3Int(x, y, z), densityField, vertices, triangles);
                     }
                 }
             }
 
-            Mesh mesh = new() { vertices = vertices.ToArray(), triangles = triangles.ToArray() };
+            mesh.subMeshCount = 1;
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
             mesh.RecalculateNormals();
+
             return mesh;
         }
 
@@ -471,6 +481,7 @@ namespace TerrainGenerator
             {
                 color = color
             };
+
             return mat;
         }
 
@@ -478,6 +489,7 @@ namespace TerrainGenerator
         {
             Vector2Int coord = new(chunkX, chunkZ);
             if (_biomeMap.ContainsKey(coord)) return _biomeMap[coord];
+
             return BiomeType.Plains;
         }
 
@@ -501,11 +513,11 @@ namespace TerrainGenerator
 
         public Dictionary<BiomeType, BiomeSettings> biomeSettings = new()
         {
-            { BiomeType.Desert, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 13f } },
-            { BiomeType.Plains, new BiomeSettings { noiseScale = 0.01f, heightMultiplier = 15f } },
-            { BiomeType.Forest, new BiomeSettings { noiseScale = 0.04f, heightMultiplier = 17f } },
-            { BiomeType.Swamp, new BiomeSettings { noiseScale = 0.03f, heightMultiplier = 12f } },
-            { BiomeType.Mountains, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 40f } }
+            { BiomeType.Desert, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 13f, chunkHeight = 64 } },
+            { BiomeType.Plains, new BiomeSettings { noiseScale = 0.01f, heightMultiplier = 15f, chunkHeight = 128 } },
+            { BiomeType.Forest, new BiomeSettings { noiseScale = 0.04f, heightMultiplier = 17f, chunkHeight = 96 } },
+            { BiomeType.Swamp, new BiomeSettings { noiseScale = 0.03f, heightMultiplier = 12f, chunkHeight = 80 } },
+            { BiomeType.Mountains, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 40f, chunkHeight = 256 } }
         };
 
         Dictionary<BiomeType, float> SampleBiomeWeights(float worldX, float worldZ)
@@ -548,7 +560,10 @@ namespace TerrainGenerator
         
         Mesh GenerateMeshWithTwoMaterials(float[,,] densityField, Vector3 chunkOrigin, BiomeType dominantBiome0, BiomeType dominantBiome1)
         {
+            Mesh mesh = GetMeshFromPool();
+
             List<Vector3> vertices = new();
+
             List<int> trianglesSubmesh0 = new();
             List<int> trianglesSubmesh1 = new();
 
@@ -563,20 +578,21 @@ namespace TerrainGenerator
                 }
             }
 
-            Mesh mesh = new()
-            {
-                vertices = vertices.ToArray(),
-                subMeshCount = 2
-            };
+            mesh.subMeshCount = 2;
+
+            mesh.SetVertices(vertices);
             mesh.SetTriangles(trianglesSubmesh0, 0);
             mesh.SetTriangles(trianglesSubmesh1, 1);
             mesh.RecalculateNormals();
+
             return mesh;
         }
+
         void MarchCubeMulti(Vector3Int pos, float[,,] densityField, List<Vector3> vertices, List<int> tris0, List<int> tris1, Vector3 chunkOrigin, BiomeType dominantBiome0, BiomeType dominantBiome1)
         {
             int cubeIndex = 0;
             float[] cubeCorners = new float[8];
+            
             Vector3[] cornerPositions = new Vector3[]
             {
                 new(0,0,0), new(1,0,0), new(1,0,1), new(0,0,1),
@@ -601,6 +617,7 @@ namespace TerrainGenerator
                 {
                     int a = MarchingCubesTables.EdgeConnections[i, 0];
                     int b = MarchingCubesTables.EdgeConnections[i, 1];
+                    
                     edgeVertices[i] = InterpolateVerts(pos + cornerPositions[a], pos + cornerPositions[b], cubeCorners[a], cubeCorners[b]);
                 }
             }
@@ -608,6 +625,7 @@ namespace TerrainGenerator
             for (int i = 0; MarchingCubesTables.TriTable[cubeIndex, i] != -1; i += 3)
             {
                 int vertexIndex = vertices.Count;
+                
                 Vector3 v0 = edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i]];
                 Vector3 v1 = edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 1]];
                 Vector3 v2 = edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 2]];
@@ -618,6 +636,7 @@ namespace TerrainGenerator
                 Vector3 centroid = (worldV0 + worldV1 + worldV2) / 3f;
 
                 Dictionary<BiomeType, float> triWeights = SampleBiomeWeights(centroid.x, centroid.z);
+                
                 float w0 = triWeights.ContainsKey(dominantBiome0) ? triWeights[dominantBiome0] : 0f;
                 float w1 = triWeights.ContainsKey(dominantBiome1) ? triWeights[dominantBiome1] : 0f;
                 bool assignToFirst = w0 >= w1;
