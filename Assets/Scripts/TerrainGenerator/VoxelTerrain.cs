@@ -9,6 +9,7 @@ using System.Collections;
 using Unity.Mathematics;
 using Unity.Entities.UniversalDelegates;
 using UnityEngine.SceneManagement;
+using System;
 
 namespace TerrainGenerator
 {
@@ -37,9 +38,8 @@ namespace TerrainGenerator
         private Dictionary<Vector2Int, BiomeType> _biomeMap = new();
         private float _seedX, _seedZ;
 
-        private readonly float _topThickness = 1f;
-        private readonly float _caveThickness = 20f;
-
+        private readonly float _topThickness = 2;
+        private readonly float _caveThickness = 10f;
         public float GetSeedX() { return _seedX; }
         public float GetSeedZ() { return _seedZ; }
         public Dictionary<Vector2Int, BiomeType> GetBiomeMap() { return _biomeMap; }
@@ -100,7 +100,8 @@ namespace TerrainGenerator
             if (dominantBiome0 == dominantBiome1)
             {
                 topRend.material = GetMaterialForBiome(dominantBiome0);
-                topMF.mesh = MeshDataToMesh(data.TopMesh);
+                Mesh tmp = MeshDataToMesh(data.TopMesh);
+                topMF.mesh = WeldCloseVertices(tmp, threshold: 0.01f);
             }
             else
             {
@@ -166,6 +167,11 @@ namespace TerrainGenerator
                 float elevation = noise.cnoise(new float2((x + seedX) * 0.05f, (z + seedZ) * 0.05f));
                 float temperature = noise.cnoise(new float2((x + seedX) * 0.03f, (z + seedZ) * 0.03f));
                 float humidity = noise.cnoise(new float2((x + seedX) * 0.03f, (z + seedZ) * 0.03f));
+                
+                Debug.Log("Chunk index: " + index);
+                Debug.Log("Elevation: " + elevation);
+                Debug.Log("Temperature: " + temperature);
+                Debug.Log("Humidity: " + humidity);
 
                 biomeMap[index] = DetermineBiome(elevation, temperature, humidity);
             }
@@ -232,7 +238,7 @@ namespace TerrainGenerator
             var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
             BiomeType dominantBiome0 = sortedWeights[0].Key;
             BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
-
+        
             GenerateDensityField(chunkCoord, out float[,,] bottomField, out float[,,] caveField, out float[,,] topField, ChunkHeight);
 
             GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
@@ -264,7 +270,7 @@ namespace TerrainGenerator
             if (dominantBiome0 == dominantBiome1)
             {
                 topRend.material = GetMaterialForBiome(dominantBiome0);
-                topMF.mesh = GenerateMesh(topField);
+                topMF.mesh = GenerateConnectedTopMesh(topField);
             }
             else
             {
@@ -283,7 +289,7 @@ namespace TerrainGenerator
         {
             bottomField = new float[ChunkSize + 1, ChunkHeight + 1, ChunkSize + 1];
             caveField = new float[ChunkSize + 1, ChunkHeight + 1, ChunkSize + 1];
-            topField = new float[ChunkSize + 1, ChunkHeight + 1, ChunkSize + 1];
+            topField = new float[ChunkSize + 1, ChunkSize + 1, ChunkSize + 1];
             
             BiomeType biome00 = GetBiomeAt(chunkCoord.x, chunkCoord.y);
             BiomeType biome10 = GetBiomeAt(chunkCoord.x + 1, chunkCoord.y);
@@ -308,6 +314,7 @@ namespace TerrainGenerator
 
                         float elevationNoise = Mathf.PerlinNoise((worldX + _seedX) * settings.noiseScale, (worldZ + _seedZ) * settings.noiseScale);
                         float baseHeight = elevationNoise * settings.heightMultiplier;
+                        
                         float clampedBaseHeight = Mathf.Min(baseHeight, ChunkSize - 1);
 
                         float density = worldY - clampedBaseHeight;
@@ -438,28 +445,59 @@ namespace TerrainGenerator
             Vector3[] edgeVertices = new Vector3[12];
             for (int i = 0; i < 12; i++)
             {
-                if ((MarchingCubesTables.EdgeTable[cubeIndex] & (1 << i)) != 0)
-                {
-                    int a = MarchingCubesTables.EdgeConnections[i, 0];
-                    int b = MarchingCubesTables.EdgeConnections[i, 1];
-                    edgeVertices[i] = InterpolateVerts(pos + cornerPositions[a], pos + cornerPositions[b], cubeCorners[a], cubeCorners[b]);
-                }
+                if ((MarchingCubesTables.EdgeTable[cubeIndex] & (1 << i)) == 0)
+                    continue;
+
+                int a = MarchingCubesTables.EdgeConnections[i, 0];
+                int b = MarchingCubesTables.EdgeConnections[i, 1];
+                Vector3 pA = pos + cornerPositions[a];
+                Vector3 pB = pos + cornerPositions[b];
+                float vA = cubeCorners[a];
+                float vB = cubeCorners[b];
+
+                bool isVertical = Mathf.Approximately(pA.x, pB.x) && Mathf.Approximately(pA.z, pB.z);
+
+                if (isVertical)
+                    edgeVertices[i] = InterpolateTopVerts(pA, pB, vA, vB);
+                else
+                    edgeVertices[i] = InterpolateVerts(pA, pB, vA, vB);
             }
 
             for (int i = 0; MarchingCubesTables.TriTable[cubeIndex, i] != -1; i += 3)
             {
-                int vertIndex = vertices.Count;
+                int vi = vertices.Count;
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i]]);
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 1]]);
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 2]]);
-                triangles.AddRange(new int[] { vertIndex, vertIndex + 1, vertIndex + 2 });
+                triangles.Add(vi);
+                triangles.Add(vi + 1);
+                triangles.Add(vi + 2);
             }
         }
 
-        Vector3 InterpolateVerts(Vector3 p1, Vector3 p2, float val1, float val2)
+        Vector3 InterpolateVerts(Vector3 p1, Vector3 p2, float v1, float v2)
         {
-            float t = (IsoLevel - val1) / (val2 - val1);
-            return p1 + t * (p2 - p1);
+            const float eps = 1e-7f;
+            if (Mathf.Abs(v1 - IsoLevel) < eps) return p1;
+            if (Mathf.Abs(v2 - IsoLevel) < eps) return p2;
+            if (Mathf.Abs(v2 - v1) < eps) return (p1 + p2) * 0.5f;
+            
+            float t = Mathf.Clamp01((IsoLevel - v1) / (v2 - v1));
+            t = t * t * (3f - 2f*t);
+            return Vector3.Lerp(p1, p2, t);
+        }
+
+        private Vector3 InterpolateTopVerts(Vector3 p1, Vector3 p2, float v1, float v2)
+        {
+            const float eps = 1e-7f;
+            if (Mathf.Abs(v1 - IsoLevel) < eps) return p1;
+            if (Mathf.Abs(v2 - IsoLevel) < eps) return p2;
+            if (Mathf.Abs(v2 - v1) < eps) return (p1 + p2) * 0.5f;
+
+            float t = (IsoLevel - v1) / (v2 - v1);
+            t = Mathf.Clamp01(t);
+            t = t * t * (3f - 2f * t);
+            return Vector3.Lerp(p1, p2, t);
         }
 
         Material GetMaterialForBiome(BiomeType biome)
@@ -658,6 +696,53 @@ namespace TerrainGenerator
                     tris1.Add(vertexIndex + 2);
                 }
             }
+        }
+        private Mesh WeldCloseVertices(Mesh mesh, float threshold = 1f)
+        {
+            Vector3[] oldVerts = mesh.vertices;
+            int[] oldTris = mesh.triangles;
+
+            List<Vector3> newVerts = new List<Vector3>();
+            int[] map = new int[oldVerts.Length];
+
+            for (int i = 0; i < oldVerts.Length; i++)
+            {
+                Vector3 v = oldVerts[i];
+                bool found = false;
+                for (int j = 0; j < newVerts.Count; j++)
+                {
+                    if (Vector3.Distance(newVerts[j], v) <= threshold)
+                    {
+                        map[i] = j;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    map[i] = newVerts.Count;
+                    newVerts.Add(v);
+                }
+            }
+
+            int[] newTris = new int[oldTris.Length];
+            for (int i = 0; i < oldTris.Length; i++)
+            {
+                newTris[i] = map[oldTris[i]];
+            }
+
+            Mesh newMesh = new()
+            {
+                vertices = newVerts.ToArray(),
+                triangles = newTris
+            };
+            newMesh.RecalculateNormals();
+            return newMesh;
+        }
+        private Mesh GenerateConnectedTopMesh(float[,,] topField)
+        {
+            Mesh raw = GenerateMesh(topField);
+            return WeldCloseVertices(raw, threshold: 0.01f);
         }
     }
 }
