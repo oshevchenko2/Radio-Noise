@@ -8,6 +8,7 @@ namespace TerrainGenerator
         Plains,
         Forest,
         Swamp,
-        Mountains
+        Mountains,
+        Ocean
     }
 }

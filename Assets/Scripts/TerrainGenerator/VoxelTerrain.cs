@@ -16,14 +16,12 @@ namespace TerrainGenerator
     public class VoxelTerrain : MonoBehaviour
     {
         public int ChunkSize = 16;
-
         public int WorldSize = 256;
 
-        private int ChunkHeight = 32;
+        private readonly int ChunkHeight = 32;
 
         public float WorldVerticalOffset = 0f;
 
-        public float TerrainScale = 10f;
         public float IsoLevel = 0f;
 
         public Material DesertMaterial;
@@ -33,13 +31,14 @@ namespace TerrainGenerator
         public Material MountainsMaterial;
 
         public Material StoneMaterial;
+        public Material WaterMaterial;
 
         private readonly Dictionary<Vector2Int, GameObject> _chunkObjects = new();
         private Dictionary<Vector2Int, BiomeType> _biomeMap = new();
         private float _seedX, _seedZ;
 
         private readonly float _topThickness = 2;
-        private readonly float _caveThickness = 10f;
+        private readonly float _caveThickness = 20f;
         public float GetSeedX() { return _seedX; }
         public float GetSeedZ() { return _seedZ; }
         public Dictionary<Vector2Int, BiomeType> GetBiomeMap() { return _biomeMap; }
@@ -178,6 +177,10 @@ namespace TerrainGenerator
 
             readonly BiomeType DetermineBiome(float elevation, float temperature, float humidity)
             {
+                /*if (elevation < 0.2f)
+                return BiomeType.Ocean;
+                */
+                
                 if (elevation > 0.8f)
                 return BiomeType.Mountains;
 
@@ -266,7 +269,7 @@ namespace TerrainGenerator
             topObj.transform.localPosition = Vector3.zero;
             MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
             MeshFilter topMF = topObj.AddComponent<MeshFilter>();
-            
+
             if (dominantBiome0 == dominantBiome1)
             {
                 topRend.material = GetMaterialForBiome(dominantBiome0);
@@ -279,6 +282,7 @@ namespace TerrainGenerator
                 topRend.materials = new Material[] { mat0, mat1 };
                 topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize), dominantBiome0, dominantBiome1);
             }
+            
         }
 
         void GenerateDensityField(Vector2Int chunkCoord, 
@@ -327,15 +331,47 @@ namespace TerrainGenerator
                         else
                             bottomField[x, y, z] = 100f;
 
-                        if (worldY >= bottomThreshold && worldY < topThreshold)
+                        float minStoneDepth = 1f;
+
+                        if (worldY < minStoneDepth)
                         {
-                            float caveNoise = Mathf.PerlinNoise(worldX * 0.05f, worldY * 0.05f) *
-                                            Mathf.PerlinNoise(worldZ * 0.05f, worldY * 0.05f);
-                            float caveMod = (caveNoise < 0.25f) ? -6f : 0f;
-                            caveField[x, y, z] = density + caveMod;
+                            caveField[x, y, z] = -1f;
+                        }
+                        else if (worldY >= bottomThreshold && worldY < topThreshold)
+                        {
+                            float3 pos = new(worldX, worldY, worldZ);
+
+                            float noise1 = noise.cnoise(pos * 0.05f);
+                            float noise2 = noise.cnoise(pos * 0.1f);
+                            float noise3 = noise.cnoise(pos * 0.2f);
+
+                            float fractalNoise = (noise1 + noise2 * 0.5f + noise3 * 0.25f) / 1.75f;
+                            float verticalMod = Mathf.Sin(worldY * 0.25f + fractalNoise * Mathf.PI);
+                            float volumeNoise = (fractalNoise + verticalMod) * 0.5f;
+                            float threshold = Mathf.SmoothStep(0.4f, 0.6f, volumeNoise);
+
+                            if (threshold > 0.45f && threshold < 0.6f)
+                            {
+                                float blobNoise = noise.cnoise(pos * 0.08f + new float3(12, 33, 17));
+                                if (blobNoise > 0.1f)
+                                {
+                                    float caveDepthMod = Mathf.Lerp(-10f, -3f, (threshold - 0.4f) / 0.2f);
+                                    caveField[x, y, z] = density + caveDepthMod;
+                                }
+                                else
+                                {
+                                    caveField[x, y, z] = 100f;
+                                }
+                            }
+                            else
+                            {
+                                caveField[x, y, z] = 100f;
+                            }
                         }
                         else
+                        {
                             caveField[x, y, z] = 100f;
+                        }
 
                         if (worldY >= topThreshold && worldY <= baseHeight)
                         {
@@ -555,7 +591,8 @@ namespace TerrainGenerator
             { BiomeType.Plains, new BiomeSettings { noiseScale = 0.01f, heightMultiplier = 15f, chunkHeight = 128 } },
             { BiomeType.Forest, new BiomeSettings { noiseScale = 0.04f, heightMultiplier = 17f, chunkHeight = 96 } },
             { BiomeType.Swamp, new BiomeSettings { noiseScale = 0.03f, heightMultiplier = 12f, chunkHeight = 80 } },
-            { BiomeType.Mountains, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 40f, chunkHeight = 256 } }
+            { BiomeType.Mountains, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 20f, chunkHeight = 128 } },
+            { BiomeType.Ocean, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 2f } }
         };
 
         Dictionary<BiomeType, float> SampleBiomeWeights(float worldX, float worldZ)
@@ -702,7 +739,7 @@ namespace TerrainGenerator
             Vector3[] oldVerts = mesh.vertices;
             int[] oldTris = mesh.triangles;
 
-            List<Vector3> newVerts = new List<Vector3>();
+            List<Vector3> newVerts = new();
             int[] map = new int[oldVerts.Length];
 
             for (int i = 0; i < oldVerts.Length; i++)
