@@ -47,7 +47,7 @@ namespace TerrainGenerator
         public void LoadBiomeMap(Dictionary<Vector2Int, BiomeType> newMap) { _biomeMap = newMap; }
 
         private static readonly Queue<Mesh> _meshPool = new();
-        private const int INITIAL_POOL_SIZE = 50;
+        private const int INITIAL_POOL_SIZE = 100;
 
         public IEnumerator DestroyAllChunks()
         {
@@ -80,6 +80,7 @@ namespace TerrainGenerator
             MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
             bottomRend.material = StoneMaterial;
             MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
+            MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
             bottomMF.mesh = MeshDataToMesh(data.BottomMesh);
 
             GameObject caveObj = new("CaveLayer");
@@ -88,6 +89,7 @@ namespace TerrainGenerator
             MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
             caveRend.material = StoneMaterial;
             MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
+            MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
             bottomMF.mesh = MeshDataToMesh(data.CaveMesh);
 
             GameObject topObj = new("TopLayer");
@@ -95,6 +97,7 @@ namespace TerrainGenerator
             topObj.transform.localPosition = Vector3.zero;
             MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
             MeshFilter topMF = topObj.AddComponent<MeshFilter>();
+            MeshCollider topMC = topObj.AddComponent<MeshCollider>();
             
             if (dominantBiome0 == dominantBiome1)
             {
@@ -164,7 +167,7 @@ namespace TerrainGenerator
                 int z = index % numChunks;
                 
                 float elevation = noise.cnoise(new float2((x + seedX) * 0.05f, (z + seedZ) * 0.05f));
-                float temperature = noise.cnoise(new float2((x + seedX) * 0.03f, (z + seedZ) * 0.03f));
+                float temperature = noise.cnoise(new float2((x + seedX) * 0.02f, (z + seedZ) * 0.03f));
                 float humidity = noise.cnoise(new float2((x + seedX) * 0.03f, (z + seedZ) * 0.03f));
                 
                 Debug.Log("Chunk index: " + index);
@@ -177,12 +180,11 @@ namespace TerrainGenerator
 
             readonly BiomeType DetermineBiome(float elevation, float temperature, float humidity)
             {
-                /*if (elevation < 0.2f)
-                return BiomeType.Ocean;
-                */
+                if (elevation < 0.2f && humidity > 0.8)
+                    return BiomeType.Ocean;
                 
                 if (elevation > 0.8f)
-                return BiomeType.Mountains;
+                    return BiomeType.Mountains;
 
                 if (humidity < 0.3f && temperature > 0.6f)
                     return BiomeType.Desert;
@@ -242,7 +244,11 @@ namespace TerrainGenerator
             BiomeType dominantBiome0 = sortedWeights[0].Key;
             BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
         
-            GenerateDensityField(chunkCoord, out float[,,] bottomField, out float[,,] caveField, out float[,,] topField, ChunkHeight);
+            GenerateDensityField(chunkCoord, 
+                            out float[,,] bottomField, 
+                            out float[,,] caveField, 
+                            out float[,,] topField, 
+                            ChunkHeight);
 
             GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
             chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
@@ -254,7 +260,9 @@ namespace TerrainGenerator
             MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
             bottomRend.material = StoneMaterial;
             MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
+            MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
             bottomMF.mesh = GenerateMesh(bottomField);
+            
 
             GameObject caveObj = new("CaveLayer");
             caveObj.transform.parent = chunkObject.transform;
@@ -262,6 +270,7 @@ namespace TerrainGenerator
             MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
             caveRend.material = StoneMaterial;
             MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
+            MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
             caveMF.mesh = GenerateMesh(caveField);
 
             GameObject topObj = new("TopLayer");
@@ -269,6 +278,7 @@ namespace TerrainGenerator
             topObj.transform.localPosition = Vector3.zero;
             MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
             MeshFilter topMF = topObj.AddComponent<MeshFilter>();
+            MeshCollider topMC = topObj.AddComponent<MeshCollider>();
 
             if (dominantBiome0 == dominantBiome1)
             {
@@ -402,6 +412,9 @@ namespace TerrainGenerator
                                     case BiomeType.Mountains:
                                         mod = Mathf.PerlinNoise(worldX * 0.4f, worldZ * 0.4f) * 6f;
                                         break;
+                                    case BiomeType.Ocean:
+                                        mod = Mathf.PerlinNoise(worldX * 0.2f, worldZ * 0.2f) * 0.2f;
+                                        break;
                                 }
 
                                 modification += mod * w;
@@ -410,7 +423,9 @@ namespace TerrainGenerator
                             topField[x, y, z] = density + modification;
                         }
                         else
+                        {
                             topField[x, y, z] = 100f;
+                        }
                     }
                 }
             }
@@ -518,21 +533,27 @@ namespace TerrainGenerator
             if (Mathf.Abs(v2 - IsoLevel) < eps) return p2;
             if (Mathf.Abs(v2 - v1) < eps) return (p1 + p2) * 0.5f;
             
-            float t = Mathf.Clamp01((IsoLevel - v1) / (v2 - v1));
-            t = t * t * (3f - 2f*t);
+            float t = (IsoLevel - v1) / (v2 - v1);
+            t = Mathf.Clamp01(t);
+            t = t * t * t * (t * (t * 6f - 15f) + 10f);
+
             return Vector3.Lerp(p1, p2, t);
         }
 
         private Vector3 InterpolateTopVerts(Vector3 p1, Vector3 p2, float v1, float v2)
         {
             const float eps = 1e-7f;
+
             if (Mathf.Abs(v1 - IsoLevel) < eps) return p1;
             if (Mathf.Abs(v2 - IsoLevel) < eps) return p2;
             if (Mathf.Abs(v2 - v1) < eps) return (p1 + p2) * 0.5f;
 
             float t = (IsoLevel - v1) / (v2 - v1);
+            
             t = Mathf.Clamp01(t);
-            t = t * t * (3f - 2f * t);
+            
+            t = t * t * t * (t * (6f * t - 15f) + 10f);
+
             return Vector3.Lerp(p1, p2, t);
         }
 
@@ -545,6 +566,7 @@ namespace TerrainGenerator
                 BiomeType.Forest => (Material)(ForestMaterial != null ? ForestMaterial : CreateMaterial(new Color(0.13f, 0.55f, 0.13f))),
                 BiomeType.Swamp => (Material)(SwampMaterial != null ? SwampMaterial : CreateMaterial(new Color(0.3f, 0.5f, 0.3f))),
                 BiomeType.Mountains => (Material)(MountainsMaterial != null ? MountainsMaterial : CreateMaterial(Color.gray)),
+                BiomeType.Ocean => (Material)(WaterMaterial != null ? WaterMaterial : CreateMaterial(Color.white)),
                 _ => (Material)CreateMaterial(Color.white),
             };
         }
@@ -589,10 +611,10 @@ namespace TerrainGenerator
         {
             { BiomeType.Desert, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 13f, chunkHeight = 64 } },
             { BiomeType.Plains, new BiomeSettings { noiseScale = 0.01f, heightMultiplier = 15f, chunkHeight = 128 } },
-            { BiomeType.Forest, new BiomeSettings { noiseScale = 0.04f, heightMultiplier = 17f, chunkHeight = 96 } },
+            { BiomeType.Forest, new BiomeSettings { noiseScale = 0.04f, heightMultiplier = 15f, chunkHeight = 96 } },
             { BiomeType.Swamp, new BiomeSettings { noiseScale = 0.03f, heightMultiplier = 12f, chunkHeight = 80 } },
-            { BiomeType.Mountains, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 20f, chunkHeight = 128 } },
-            { BiomeType.Ocean, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 2f } }
+            { BiomeType.Mountains, new BiomeSettings { noiseScale = 0.05f, heightMultiplier = 17f, chunkHeight = 128 } },
+            { BiomeType.Ocean, new BiomeSettings { noiseScale = 0.01f, heightMultiplier = 12f, chunkHeight = 128 } }
         };
 
         Dictionary<BiomeType, float> SampleBiomeWeights(float worldX, float worldZ)
