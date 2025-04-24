@@ -180,19 +180,20 @@ namespace TerrainGenerator
 
             readonly BiomeType DetermineBiome(float elevation, float temperature, float humidity)
             {
-                if (elevation < 0.2f && humidity > 0.8)
+                /*if (elevation < 0.2f && humidity > 0.8)
                     return BiomeType.Ocean;
+                */
                 
-                if (elevation > 0.8f)
+                if (elevation > 0f)
                     return BiomeType.Mountains;
 
-                if (humidity < 0.3f && temperature > 0.6f)
+                if (humidity < 0.2f && temperature > 0.6f)
                     return BiomeType.Desert;
 
-                if (humidity > 0.7f && temperature > 0.5f)
+                if (humidity > -0.1f && temperature > 0.5f)
                     return BiomeType.Swamp;
 
-                if (humidity > 0.5f && temperature > 0.4f)
+                if (humidity > 0.1f && temperature > 0.4f)
                     return BiomeType.Forest;
 
                 return BiomeType.Plains;
@@ -351,14 +352,14 @@ namespace TerrainGenerator
                         {
                             float3 pos = new(worldX, worldY, worldZ);
 
-                            float noise1 = noise.cnoise(pos * 0.05f);
-                            float noise2 = noise.cnoise(pos * 0.1f);
-                            float noise3 = noise.cnoise(pos * 0.2f);
+                            float noise1 = noise.cnoise(pos * 0.1f);
+                            float noise2 = noise.cnoise(pos * 0.3f);
+                            float noise3 = noise.cnoise(pos * 0.5f);
 
                             float fractalNoise = (noise1 + noise2 * 0.5f + noise3 * 0.25f) / 1.75f;
                             float verticalMod = Mathf.Sin(worldY * 0.25f + fractalNoise * Mathf.PI);
                             float volumeNoise = (fractalNoise + verticalMod) * 0.5f;
-                            float threshold = Mathf.SmoothStep(0.4f, 0.6f, volumeNoise);
+                            float threshold = Mathf.SmoothStep(0.5f, 0.6f, volumeNoise);
 
                             if (threshold > 0.45f && threshold < 0.6f)
                             {
@@ -531,7 +532,7 @@ namespace TerrainGenerator
             const float eps = 1e-7f;
             if (Mathf.Abs(v1 - IsoLevel) < eps) return p1;
             if (Mathf.Abs(v2 - IsoLevel) < eps) return p2;
-            if (Mathf.Abs(v2 - v1) < eps) return (p1 + p2) * 0.5f;
+            if (Mathf.Abs(v2 - v1) < eps) return Vector3.Lerp(p1, p2,  0.5f);
             
             float t = (IsoLevel - v1) / (v2 - v1);
             t = Mathf.Clamp01(t);
@@ -546,7 +547,7 @@ namespace TerrainGenerator
 
             if (Mathf.Abs(v1 - IsoLevel) < eps) return p1;
             if (Mathf.Abs(v2 - IsoLevel) < eps) return p2;
-            if (Mathf.Abs(v2 - v1) < eps) return (p1 + p2) * 0.5f;
+            if (Mathf.Abs(v2 - v1) < eps) return Vector3.Lerp(p1, p2,  0.5f);
 
             float t = (IsoLevel - v1) / (v2 - v1);
             

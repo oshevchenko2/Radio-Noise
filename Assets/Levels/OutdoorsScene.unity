@@ -929,11 +929,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ChunkSize: 32
-  WorldSize: 192
+  WorldSize: 128
   WorldVerticalOffset: 0
   IsoLevel: 10
   DesertMaterial: {fileID: 2100000, guid: 711174b98d2b3d84782c713f9caf5714, type: 2}
-  PlainsMaterial: {fileID: 2100000, guid: 4a189cbca60c9fa41ae1c0a94d1671be, type: 2}
+  PlainsMaterial: {fileID: 2100000, guid: 15f0df0ba84c5d14cb5f3aafee2d929f, type: 2}
   ForestMaterial: {fileID: 2100000, guid: e28dded354512ca41a0f101307e96366, type: 2}
   SwampMaterial: {fileID: 2100000, guid: 0eaaae7cc3fe00a488af4398ea2ed76d, type: 2}
   MountainsMaterial: {fileID: 2100000, guid: 2a6c63c1bcb7fe44bbc2be083c8a9a6d, type: 2}
