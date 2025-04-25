@@ -929,7 +929,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ChunkSize: 32
-  WorldSize: 192
+  WorldSize: 256
   WorldVerticalOffset: 0
   IsoLevel: 10
   DesertMaterial: {fileID: 2100000, guid: 711174b98d2b3d84782c713f9caf5714, type: 2}
