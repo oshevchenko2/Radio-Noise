@@ -77,7 +77,7 @@ namespace TerrainGenerator
         private readonly float _caveThickness = 20f;
 
         // Layers thicknesses.
-        // Do not put less than 2 for(Yeah, here, to avoid confusion, I don't put 4 as for) Top 
+        // Do not put less than 2 for(Yeah, here, to avoid confusion, I don't put 4 as for and 2 as to) Top 
         // and less than 10 for caves.
 
         public float GetSeedX() { return _seedX; }
@@ -94,7 +94,7 @@ namespace TerrainGenerator
         // Created and converted as methods & variables 4 WorldSaveSystem.cs
 
         private static readonly Queue<Mesh> _meshPool = new();
-        // Queue<Mesh> that implements a pool of meshes for reuse.
+        // Queue<Mesh> that implements a pool of meshes 4 reuse.
         private const int INITIAL_POOL_SIZE = 100;
 
         // MeshPool as protection + optimization from unnecessary use of meshes
@@ -124,7 +124,7 @@ namespace TerrainGenerator
             chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
             // Puts it in the world on a grid: chunk coordinates x chunk size.
             _chunkObjects[chunkCoord] = chunkObject;
-            // Saves the reference to a dictionary so that you can quickly find and overwrite this chunk later on
+            // Saves the reference to a dictionary so that I can quickly find and overwrite this chunk later on
 
             float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
             float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
@@ -136,13 +136,13 @@ namespace TerrainGenerator
 
             // If creating new layer, use:
             // GameObject layerNameObj = new("LayerName"); // Making container for layerNameObj with readable name
-            // layerNameObj.transform.parent = chunkObject.transform; // Bind to the root of the chunk
+            // layerNameObj.transform.parent = chunkObject.transform; // Bind 2 the root of the chunk
             // layerNameObj.transform.localPosition = Vector3.zero; // and zero-shift it inside
             // MeshRenderer layerNameRend = layerNameObj.AddComponent<MeshRenderer>();
             // layerNameRend.material = layerNameMaterial;
             // MeshFilter layerNameMF = layerNameObj.AddComponent<MeshFilter>();
             // MeshCollider layerNameMC = layerNameObj.AddComponent<MeshCollider>();
-            // layerNameMF.mesh = MeshDataToMesh(data.BottomMesh); // Onverting data saved in ChunkData.cs to Mesh
+            // layerNameMF.mesh = MeshDataToMesh(data.layerNameMesh); // Onverting data saved in ChunkData.cs 2 Mesh
 
             GameObject bottomObj = new("BottomLayer");
             bottomObj.transform.parent = chunkObject.transform;
@@ -173,7 +173,7 @@ namespace TerrainGenerator
 
             // Top layer is little bit different
             // But..
-            // If the biome is single, we assign one material and weld close vertices to remove artifacts
+            // If the biome is single, we assign one material and weld close vertices 2 remove artifacts
             if (dominantBiome0 == dominantBiome1)
             {
                 topRend.material = GetMaterialForBiome(dominantBiome0);
@@ -234,33 +234,40 @@ namespace TerrainGenerator
             for (int i = 0; i < INITIAL_POOL_SIZE; i++)
             {
                 _meshPool.Enqueue(new Mesh());
-                // Creates a new empty Mesh object, ready to be filled with vertices and triangles
-                // and adds the mesh to the end of the queue, providing O(1)-operation and predictable memory control.
+                // Creates a new empty Mesh object, ready 2 be filled with vertices and triangles
+                // and adds the mesh 2 the end of the queue, providing O(1)-operation and predictable memory control.
             }
         }
 
         void GenerateBiomeMap()
         {
             int numChunks = WorldSize / ChunkSize;
+            // Here we count how many chunks along the X (and Z) axis will fit in the world.
+            // If, say, WorldSize = 256 and ChunkSize = 16, we get numChunks = 16
             var biomeJob = new BiomeGenerationJob
             {
                 numChunks = numChunks,
                 seedX = _seedX,
                 seedZ = _seedZ,
                 biomeMap = new NativeArray<BiomeType>(numChunks * numChunks, Allocator.TempJob)
+                // I choose TempJob coz the array is only needed 4 the duration of the job and must be manually freed after the job is executed
             };
 
             JobHandle handle = biomeJob.Schedule(numChunks * numChunks, 64);
+            // Splits numChunks * numChunks iterations into batches of 64, distributing work among CPU cores
             handle.Complete();
+            // Usually it's better to call Complete later, but here I need 2 get the results right away
 
             for (int i = 0; i < biomeJob.biomeMap.Length; i++)
             {
                 int x = i / numChunks;
                 int z = i % numChunks;
                 _biomeMap[new Vector2Int(x, z)] = biomeJob.biomeMap[i];
+                // Index "i" is partitioned 2d chunk coordinates
             }
 
             biomeJob.biomeMap.Dispose();
+            // Be sure to call after Complete() 2 avoid leaks (especially with Allocator.TempJob)
         }
 
         [BurstCompile]
@@ -323,12 +330,19 @@ namespace TerrainGenerator
 
         void GenerateWorld()
         {
-            for (int x = 0; x < WorldSize; x += ChunkSize)
+            for (int x = 0; x < WorldSize; x += ChunkSize) 
+            // Start from zero (leftmost corner of the world).
+            // Keep going until we get to the size of the world.
+            // Jump at once to the width of one chunk to process not every unit, but blocks of ChunkSize
             {
                 for (int z = 0; z < WorldSize; z += ChunkSize)
+                // By the same logic, only for the second coordinate (Z axis).
+                // Together with the outer loop they form a two-dimensional grid of chunks
                 {
                     Vector2Int chunkCoord = new(x / ChunkSize, z / ChunkSize);
+                    // Integer division automatically rounds down, translating world coordinates (e.g., x=32 with ChunkSize=16) into chunk indices (2, ...)
                     GenerateChunk(chunkCoord);
+                    // Steve is building minecraft world from scratch
                 }
             }
         }
@@ -337,10 +351,13 @@ namespace TerrainGenerator
         {
             float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
             float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
+            // World coordinates of the center of the chunk, needed 2 estimate which biomes “predominate” in the middle of the block.
+            
             Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
             var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
-            BiomeType dominantBiome0 = sortedWeights[0].Key;
-            BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
+            // Sort by descending weight and select the two largest values:
+            BiomeType dominantBiome0 = sortedWeights[0].Key; // the main biome
+            BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0; // the second “strongest” (or the same if only one)
         
             GenerateDensityField(chunkCoord, 
                             out float[,,] bottomField, 
@@ -349,8 +366,22 @@ namespace TerrainGenerator
                             ChunkHeight);
 
             GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
+            // A GameObject of a chunk with a readable name is created
             chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
+            // Puts it in the world on a grid: chunk coordinates x chunk size.
             _chunkObjects[chunkCoord] = chunkObject;
+            // Saves the reference to a dictionary so that I can quickly find and overwrite this chunk later on
+
+            // If creating new layer, use:
+            // GameObject layerNameObj = new("LayerName"); // Making container for layerNameObj with readable name
+            // layerNameObj.transform.parent = chunkObject.transform; // Bind 2 the root of the chunk
+            // layerNameObj.transform.localPosition = Vector3.zero; // and zero-shift it inside
+            // MeshRenderer layerNameRend = layerNameObj.AddComponent<MeshRenderer>();
+            // layerNameRend.material = layerNameMaterial;
+            // MeshFilter layerNameMF = layerNameObj.AddComponent<MeshFilter>();
+            // MeshCollider layerNameMC = layerNameObj.AddComponent<MeshCollider>();
+            // layerNameMF.mesh = GenerateMesh(layerNameMesh); // Onverting data saved in ChunkData.cs 2 Mesh
+            // !!! DON'T FORGET TO PUT THIS IN RecreateChunk ENUMERATOR
 
             GameObject bottomObj = new("BottomLayer");
             bottomObj.transform.parent = chunkObject.transform;
@@ -389,8 +420,7 @@ namespace TerrainGenerator
                 Material mat1 = GetMaterialForBiome(dominantBiome1);
                 topRend.materials = new Material[] { mat0, mat1 };
                 topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize), dominantBiome0, dominantBiome1);
-            }
-            
+            } 
         }
 
         void GenerateDensityField(Vector2Int chunkCoord, 
