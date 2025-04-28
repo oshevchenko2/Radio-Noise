@@ -1,9 +1,8 @@
 using UnityEngine;
 
-[System.Serializable]
 public class BiomeSettings
 {
-    public float noiseScale = 0.05f;
-    public float heightMultiplier = 20f;
-    
+    public float noiseScale = 0.3f;
+    public float heightMultiplier = 5;
+    public int chunkHeight;
 }
