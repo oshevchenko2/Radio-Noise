@@ -408,8 +408,8 @@ namespace TerrainGenerator
             MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
             bottomRend.material = StoneMaterial;
             MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
-            MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
             bottomMF.mesh = GenerateMesh(bottomField);
+            MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
             // Creating bot layer
 
             GameObject caveObj = new("CaveLayer");
@@ -418,8 +418,8 @@ namespace TerrainGenerator
             MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
             caveRend.material = StoneMaterial;
             MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
-            MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
             caveMF.mesh = GenerateMesh(caveField);
+            MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
             // Creating cave
 
             GameObject stoneObj = new("StoneLayer");
@@ -428,8 +428,8 @@ namespace TerrainGenerator
             var stoneRend = stoneObj.AddComponent<MeshRenderer>();
             stoneRend.material = StoneMaterial;
             var stoneMF = stoneObj.AddComponent<MeshFilter>();
-            var stoneMC = stoneObj.AddComponent<MeshCollider>();
             stoneMF.mesh = GenerateMesh(stoneField);
+            var stoneMC = stoneObj.AddComponent<MeshCollider>();
             // Creating Top Stone
 
             GameObject topObj = new("TopLayer");
@@ -437,7 +437,6 @@ namespace TerrainGenerator
             topObj.transform.localPosition = Vector3.zero;
             MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
             MeshFilter topMF = topObj.AddComponent<MeshFilter>();
-            MeshCollider topMC = topObj.AddComponent<MeshCollider>();
 
             // Top layer is little bit different
             // But..
@@ -455,6 +454,7 @@ namespace TerrainGenerator
                 topRend.materials = new Material[] { mat0, mat1 };
                 topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize), dominantBiome0, dominantBiome1);
             }
+            MeshCollider topMC = topObj.AddComponent<MeshCollider>();
             // Creating top layer
         }
 
