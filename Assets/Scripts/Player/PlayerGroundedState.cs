@@ -4,10 +4,8 @@ using Movement;
 using System.Collections.Generic;
 using Player;
 
-[Serializable]
 public class PlayerGroundedState : PlayerMovementState
 {
-    private Vector3 _input;
     private readonly float _currentMovementSpeed = 15f;
     private float _verticalVelocity = 0.0f;
     private readonly float _gravity = 9.81f;
@@ -17,7 +15,7 @@ public class PlayerGroundedState : PlayerMovementState
     public override void Enter() => _controller = stateMachine.GetComponent<CharacterController>();
 
     public override void Update()
-    {   
+    {        
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
@@ -37,7 +35,7 @@ public class PlayerGroundedState : PlayerMovementState
         
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            stateMachine.SetState(new PlayerJumpState(stateMachine, finalMove * 0.1f));
+            stateMachine.SetState(new PlayerJumpState(stateMachine, finalMove * 0.2f));
         }
         
     }

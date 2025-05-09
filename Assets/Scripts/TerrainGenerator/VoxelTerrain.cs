@@ -11,8 +11,6 @@ using Unity.Mathematics;
 using Unity.Entities.UniversalDelegates;
 using UnityEngine.SceneManagement;
 using System;
-using System.Threading;
-using Unity.VisualScripting;
 
 namespace TerrainGenerator
 {
@@ -76,9 +74,9 @@ namespace TerrainGenerator
 
         // Can I not write comments 4 such obvious things?
 
-        [SerializeField] private  float _topThickness = 2;
-        [SerializeField] private  float _caveThickness = 50;
-        [SerializeField] private  float _stoneThickness = 2;
+        private readonly float _topThickness = 2;
+        private readonly float _caveThickness = 20;
+        private readonly float _stoneThickness = 2;
 
         // Layers thicknesses.
         // Do not put less than 2 for(Yeah, here, to avoid confusion, I don't put 4 as for and 2 as to) Top 
@@ -238,7 +236,7 @@ namespace TerrainGenerator
             Debug.Log($"Seed: {_seedX}{_seedZ}");
 
             GenerateBiomeMap();
-            GenerateWorld();
+            StartCoroutine(GenerateWorld());
         }
 
         private void Update()
@@ -348,29 +346,39 @@ namespace TerrainGenerator
             }
         }
 
-        async void GenerateWorld()
+        IEnumerator GenerateWorld()
         {
-            for (int x = 0; x < WorldSize; x += ChunkSize) 
-            // Start from zero (leftmost corner of the world).
-            // Keep going until we get to the size of the world.
-            // Jump at once to the width of one chunk to process not every unit, but blocks of ChunkSize
-            {
+            var chunkCoords = new List<Vector2Int>();
+            for (int x = 0; x < WorldSize; x += ChunkSize)
                 for (int z = 0; z < WorldSize; z += ChunkSize)
-                // By the same logic, only for the second coordinate (Z axis).
-                // Together with the outer loop they form a two-dimensional grid of chunks
+                    chunkCoords.Add(new Vector2Int(x / ChunkSize, z / ChunkSize));
+
+            var playerPos = transform.position;
+            chunkCoords.Sort((a, b) =>
+            {
+                Vector2 pa = new(a.x * ChunkSize, a.y * ChunkSize);
+                Vector2 pb = new(b.x * ChunkSize, b.y * ChunkSize);
+                float da = Vector2.SqrMagnitude(pa - new Vector2(playerPos.x, playerPos.z));
+                float db = Vector2.SqrMagnitude(pb - new Vector2(playerPos.x, playerPos.z));
+                return da.CompareTo(db);
+            });
+
+            int countThisFrame = 0;
+            foreach (var coord in chunkCoords)
+            {
+                GenerateChunk(coord);
+
+                countThisFrame++;
+                if (countThisFrame >= 15)
                 {
-                    Vector2Int chunkCoord = new(x / ChunkSize, z / ChunkSize);
-                    // Integer division automatically rounds down, translating world coordinates (e.g., x=32 with ChunkSize=16) into chunk indices (2, ...)
-                    // Steve is building minecraft world from scratch
-                    
-                    GenerateChunk(chunkCoord);
+                    countThisFrame = 5;
+                    yield return null;
                 }
             }
         }
-    
-        async void GenerateChunk(Vector2Int chunkCoord)
+
+        void GenerateChunk(Vector2Int chunkCoord)
         {
-            Debug.Log("Nadpisz na kurtochke: pizda");
             float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
             float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
             // World coordinates of the center of the chunk, needed 2 estimate which biomes “predominate” in the middle of the block.
@@ -380,12 +388,13 @@ namespace TerrainGenerator
             // Sort by descending weight and select the two largest values:
             BiomeType dominantBiome0 = sortedWeights[0].Key; // the main biome
             BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0; // the second “strongest” (or the same if only one)
-
-            GenerateDensityField(chunkCoord, out float[,,] bottomField,
-            out float[,,] caveField,
-            out float[,,] stoneField,
-            out float[,,] topField ,ChunkHeight);
-            
+        
+            GenerateDensityField(chunkCoord, 
+                            out float[,,] bottomField, 
+                            out float[,,] caveField,
+                            out float[,,] stoneField,
+                            out float[,,] topField,
+                            ChunkHeight);
 
             GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
             // A GameObject of a chunk with a readable name is created
@@ -459,9 +468,6 @@ namespace TerrainGenerator
             }
             MeshCollider topMC = topObj.AddComponent<MeshCollider>();
             // Creating top layer
-
-            Debug.Log("Fufufu");
-            //return null;
         }
 
         void GenerateDensityField(Vector2Int chunkCoord, 
@@ -481,7 +487,7 @@ namespace TerrainGenerator
             stoneField  = new float[size, ChunkHeight + 1, size];
             topField = new float[size, size, size];
             // topField is 3d only in X and Z with the same size, and in Y size too - it stores “surface” densities down 2 ground level.
-            Debug.Log("HAbibi");
+
             for (int x = 0; x <= ChunkSize; x++)
             {
                 for (int y = 0; y <= chunkHeight; y++)
