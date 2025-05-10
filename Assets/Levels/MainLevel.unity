@@ -152,6 +152,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e84bd72fa655c54788421fdc9cf7f28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _stack:
+    _stack: []
 --- !u!136 &19233507
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -203,6 +205,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 244527d3efaeac2499656aeda933baf3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _stack:
+    _stack: []
 --- !u!143 &19233510
 CharacterController:
   m_ObjectHideFlags: 0
@@ -228,33 +232,20 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!54 &19233511
-Rigidbody:
+--- !u!114 &19233511
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 19233505}
-  serializedVersion: 4
-  m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 112
-  m_CollisionDetection: 0
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52348d0cb5ccccf43b1744d485e8838d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MouseSensitivity: 2
+  MaxLookAngle: 85
 --- !u!1 &20248319
 GameObject:
   m_ObjectHideFlags: 0
@@ -1109,9 +1100,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ChunkSize: 32
-  WorldSize: 32
+  WorldSize: 128
   WorldVerticalOffset: 0
-  IsoLevel: 10
+  IsoLevel: 8
   DesertMaterial: {fileID: 2100000, guid: 711174b98d2b3d84782c713f9caf5714, type: 2}
   PlainsMaterial: {fileID: 2100000, guid: 4a189cbca60c9fa41ae1c0a94d1671be, type: 2}
   ForestMaterial: {fileID: 2100000, guid: e28dded354512ca41a0f101307e96366, type: 2}
@@ -1397,6 +1388,7 @@ GameObject:
   - component: {fileID: 1823688466}
   - component: {fileID: 1823688465}
   - component: {fileID: 1823688468}
+  - component: {fileID: 1823688469}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1617,6 +1609,25 @@ MonoBehaviour:
       enableFptlForForwardOpaque: 0
       enableBigTilePrepass: 0
       isFptlEnabled: 0
+--- !u!114 &1823688469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1823688464}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a297cf390965ec4795a8f84e3c6f5ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _reachDistance: 5
+  _chunkLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  _triangleSize: 1
+  _triangleHeight: 1
+  _addMaterial: {fileID: 2100000, guid: f1888d1f95dbd7247955beee78a3e849, type: 2}
 --- !u!1 &1916390631
 GameObject:
   m_ObjectHideFlags: 0

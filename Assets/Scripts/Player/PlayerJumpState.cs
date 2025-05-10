@@ -20,7 +20,7 @@ namespace Player
 
         public override void Enter()
         {
-            velocity.y = Mathf.Sqrt(_jumpForce * -2f * _gravity);
+            velocity.y = Mathf.Sqrt(_jumpForce * -2f * -_gravity);
             _controller = stateMachine.GetComponent<CharacterController>();
         }
 

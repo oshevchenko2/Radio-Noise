@@ -101,7 +101,6 @@ namespace TerrainGenerator
         private const int INITIAL_POOL_SIZE = 100;
 
         // MeshPool as protection + optimization from unnecessary use of meshes
-
         public IEnumerator DestroyAllChunks()
         {
             while (_chunkObjects.Count > 0)
@@ -296,7 +295,7 @@ namespace TerrainGenerator
             public NativeArray<BiomeType> biomeMap;
             // Output array where the calculated biome for each index is written.
 
-            public void Execute(int index)
+            public async void Execute(int index)
             {
                 int x = index / numChunks;
                 int z = index % numChunks;
@@ -369,9 +368,9 @@ namespace TerrainGenerator
                 GenerateChunk(coord);
 
                 countThisFrame++;
-                if (countThisFrame >= 15)
+                if (countThisFrame >= 16)
                 {
-                    countThisFrame = 5;
+                    countThisFrame = 30;
                     yield return null;
                 }
             }
@@ -400,6 +399,9 @@ namespace TerrainGenerator
             // A GameObject of a chunk with a readable name is created
             chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
             // Puts it in the world on a grid: chunk coordinates x chunk size.
+            
+            int layerId = LayerMask.NameToLayer("Chunk");
+
             _chunkObjects[chunkCoord] = chunkObject;
             // Saves the reference to a dictionary so that I can quickly find and overwrite this chunk later on
 
@@ -432,6 +434,7 @@ namespace TerrainGenerator
             MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
             caveMF.mesh = GenerateMesh(caveField);
             MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
+            caveObj.layer = layerId;
             // Creating cave
 
             GameObject stoneObj = new("StoneLayer");
@@ -442,6 +445,7 @@ namespace TerrainGenerator
             var stoneMF = stoneObj.AddComponent<MeshFilter>();
             stoneMF.mesh = GenerateMesh(stoneField);
             var stoneMC = stoneObj.AddComponent<MeshCollider>();
+            stoneObj.layer = layerId;
             // Creating Top Stone
 
             GameObject topObj = new("TopLayer");
@@ -466,6 +470,7 @@ namespace TerrainGenerator
                 topRend.materials = new Material[] { mat0, mat1 };
                 topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize), dominantBiome0, dominantBiome1);
             }
+            topObj.layer = layerId;
             MeshCollider topMC = topObj.AddComponent<MeshCollider>();
             // Creating top layer
         }
