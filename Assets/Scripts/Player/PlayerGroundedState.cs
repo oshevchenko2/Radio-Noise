@@ -7,7 +7,7 @@ namespace Player
 {
     public class PlayerGroundedState : PlayerMovementState
     {
-        private readonly float _currentMovementSpeed = 15f;
+        private readonly float _currentMovementSpeed = 10f;
         private float _verticalVelocity = 0.0f;
         private readonly float _gravity = 9.81f;
         private CharacterController _controller;
@@ -36,7 +36,7 @@ namespace Player
             
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                stateMachine.SetState(new PlayerJumpState(stateMachine, finalMove * 0.2f));
+                stateMachine.SetState(new PlayerJumpState(stateMachine, finalMove * 0.1f));
             }
             
         }

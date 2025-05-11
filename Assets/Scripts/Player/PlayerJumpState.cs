@@ -7,8 +7,8 @@ namespace Player
     public class PlayerJumpState : PlayerMovementState
     {
         private CharacterController _controller;
-        private readonly float _currentMovementSpeed = 6f;
-        private float _jumpForce = 10;
+        private readonly float _currentMovementSpeed = 3f;
+        private float _jumpForce = 4;
         private readonly float _gravity = 9.81f;
         private Vector3 startSpeed;
         private Vector3 velocity;
@@ -33,7 +33,7 @@ namespace Player
             velocity.y += -_gravity * Time.deltaTime;
             _controller.Move((velocity + moveDirection + startSpeed) * Time.deltaTime);
             
-            if(Physics.Raycast(origin:stateMachine.transform.position, direction:Vector3.down, maxDistance: stateMachine.transform.localScale.y + 0.2f) && velocity.y <= 0)
+            if(Physics.Raycast(origin:stateMachine.transform.position, direction:Vector3.down, maxDistance: stateMachine.transform.localScale.y + 0.1f) && velocity.y <= 0)
             {
                 stateMachine.Begin(new PlayerGroundedState(stateMachine));
             }

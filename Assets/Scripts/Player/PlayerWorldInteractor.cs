@@ -103,15 +103,8 @@ namespace Player
             targetPosition -= hit.normal * (cellSize * 0.5f);
 
             Vector3 halfExtents = GetShapeHalfExtents();
-            Collider[] overlaps = Physics.OverlapBox(targetPosition, halfExtents, Quaternion.identity, _chunkLayer);
-
-            foreach (var col in overlaps)
-            {
-                if (col.gameObject.name.StartsWith("Volume_"))
-                {
-                    return;
-                }
-            }
+            if (Physics.CheckBox(targetPosition, halfExtents, Quaternion.identity, _chunkLayer))
+                return;
 
             Quaternion rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
             // Rotate the shape so that its upward direction is along the surface normal
@@ -142,31 +135,30 @@ namespace Player
 
         Vector3Int GetGridOffsetDirection(Vector3 normal)
         {
-            Vector3Int direction = Vector3Int.zero;
             normal = normal.normalized;
+            Vector3Int dir = Vector3Int.zero;
 
-            if (normal.x > 0.707f) direction.x = 1;
-            else if (normal.x < -0.707f) direction.x = -1;
-            else if (normal.y > 0.707f) direction.y = 1;
-            else if (normal.y < -0.707f) direction.y = -1;
-            else if (normal.z > 0.707f) direction.z = 1;
-            else if (normal.z < -0.707f) direction.z = -1;
+            float max = Mathf.Max(Mathf.Abs(normal.x), Mathf.Abs(normal.y), Mathf.Abs(normal.z));
 
-            // Determine the main direction of the normal 
-            // (X, Y or Z axis)
+            if (Mathf.Abs(normal.x) == max)
+                dir.x = normal.x > 0 ? 1 : -1;
+            else if (Mathf.Abs(normal.y) == max)
+                dir.y = normal.y > 0 ? 1 : -1;
+            else
+                dir.z = normal.z > 0 ? 1 : -1;
 
-            return direction;
+            return dir;
         }
 
         Vector3 GetShapeHalfExtents()
         {
-            float size = _shapeSize * 0.5f;
+            float size = _shapeSize * 0.5f * 0.95f;
             return _shape switch
             {
-                ShapeType.Cube => new Vector3(size, size, size) * 0.95f,
-                ShapeType.Cylinder => new Vector3(size * 0.8f, size * 0.95f, size * 0.8f),
-                ShapeType.Triangle => new Vector3(size * 0.6f, size * 0.95f, size * 0.6f),
-                _ => 0.9f * size * Vector3.one,
+                ShapeType.Cube => new Vector3(size, size, size),
+                ShapeType.Cylinder => new Vector3(size, size, size),
+                ShapeType.Triangle => new Vector3(size, size, size),
+                _ => Vector3.one * size
             };
             // We return halfExtents with a small "reserve" so that the colliders do not stick
         }
