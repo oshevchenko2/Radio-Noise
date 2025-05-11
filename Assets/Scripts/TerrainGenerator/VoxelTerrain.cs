@@ -236,6 +236,7 @@ namespace TerrainGenerator
 
             GenerateBiomeMap();
             StartCoroutine(GenerateWorld());
+            gameObject.SetActive(false);
         }
 
         private void Update()
@@ -535,9 +536,11 @@ namespace TerrainGenerator
                         float bottomThreshold = blendedHeight - (_topThickness + _caveThickness);
                         float topThreshold = blendedHeight - _topThickness;
 
-                        bottomField[x, y, z] = (worldY < bottomThreshold)
-                            ? density
-                            : 100f;
+                        //bottomField[x, y, z] = (worldY < bottomThreshold)
+                          //  ? density
+                            //: 100f;
+                        float bottomLimit = WorldVerticalOffset + 0f; // Замените 8f на нужную вам "высоту нижнего слоя"
+                        bottomField[x, y, z] = (worldY <= bottomLimit) ? density : 100f;
                         // If the point is below the lower threshold, we record the real density.
                         // Otherwise, set a large positive value (fill “outside” the mesh),
                         // so that Marching Cubes does not draw anything there.

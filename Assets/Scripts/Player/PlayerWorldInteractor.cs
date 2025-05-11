@@ -1,120 +1,299 @@
+using System;
 using System.Collections.Generic;
-using TerrainGenerator;
-using Unity.Entities.UniversalDelegates;
 using UnityEngine;
 
 namespace Player
 {
     public class PlayerWorldInteractor : MonoBehaviour
     {
-        [SerializeField] private float _reachDistance  = 5f;
+        [SerializeField] private float _reachDistance = 5f;
         [SerializeField] private LayerMask _chunkLayer;
-        [SerializeField] private float _triangleSize   = 0.5f;
-        [SerializeField] private float _triangleHeight = 0.2f;
+        [SerializeField] private float _shapeSize = 0.5f;
         [SerializeField] private Material _addMaterial;
+        private ShapeType _shape = ShapeType.Triangle;
 
         private Camera _cam;
+        private int _chunkLayerIndex;
 
         void Start()
         {
             _cam = GetComponent<Camera>();
+            _chunkLayerIndex = GetFirstLayerFromMask(_chunkLayer);
+            // Convert LayerMask 2 a numeric layer index 4 easy invocation
         }
 
         void Update()
         {
-            if (Input.GetMouseButtonDown(0)) TryRemoveTriangle();
-            if (Input.GetMouseButtonDown(1)) TryAddVolume();
+            if (Input.GetKeyDown(KeyCode.Tab))
+                _shape = (ShapeType)(((int)_shape + 1) % Enum.GetValues(typeof(ShapeType)).Length);
+            // Switch shape type
+            if (Input.GetMouseButtonDown(0)) RemoveTriangle();
+            if (Input.GetMouseButtonDown(1)) AddVolume();
         }
 
-        void TryRemoveTriangle()
+        void RemoveTriangle()
         {
-            Ray ray = _cam.ScreenPointToRay(Input.mousePosition);
-            if (!Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer))
-                return;
-
-            int mask  = _chunkLayer.value;
-            int layer = hit.collider.gameObject.layer;
-            if ((mask & (1 << layer)) == 0)
-                return;
-
-            var filter = hit.collider.GetComponent<MeshFilter>();
-            var collider = hit.collider.GetComponent<MeshCollider>();
-            if (filter == null || collider == null)
-                return;
-
-            RemoveTriangleSafe(filter.mesh, hit.triangleIndex);
-
-            collider.sharedMesh = null;
-            collider.sharedMesh = filter.mesh;
+            var ray = _cam.ScreenPointToRay(Input.mousePosition);
+            if (!Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer)) return;
+            // If ray does'nt hit the layer at the _reachDistance - return
+            var go = hit.collider.gameObject;
+            if (go.name.StartsWith("Volume_")) Destroy(go);
+            // If hit obj with prefix Volume_ - destroy it!
+            
+            var mf = hit.collider.GetComponent<MeshFilter>();
+            var mc = hit.collider.GetComponent<MeshCollider>();
+            if (mf == null || mc == null) return;
+            
+            RemoveTriangle(mf.mesh, mc, hit.triangleIndex);
         }
 
-        void RemoveTriangleSafe(Mesh mesh, int triIndex)
+        void RemoveTriangle(Mesh mesh, MeshCollider meshCollider, int globalTriIndex)
         {
-            int[] tris = mesh.triangles;
-            int triCount = tris.Length / 3;
+            int sub = FindSubMeshIndex(mesh, globalTriIndex);
+            // Determine in which submesh we have triangle
+            if (sub < 0) return;
+            // If not found - return
             
-            if (triIndex < 0 || triIndex >= triCount)
-                return;
+            var tris = new List<int>(mesh.GetTriangles(sub));
+            // Creating list of submesh triangle index
+            int before = 0;
+            for (int i = 0; i < sub; i++) before += mesh.GetTriangles(i).Length / 3;
+            // Count the total number of triangles in earlier submeshes
 
-            int start = triIndex * 3;
+            int local = globalTriIndex - before;
+            int idx = local * 3;
+            if (idx < 0 || idx + 2 >= tris.Count) return;
+            // Check that the index is in the valid range
             
-            if (start + 2 >= tris.Length)
-                return;
-
-            var newTris = new List<int>(tris);
-            newTris.RemoveRange(start, 3);
-
-            mesh.triangles = newTris.ToArray();
+            tris.RemoveRange(idx, 3);
+            // Removes 3 indexes(1 triangle)
+            
+            mesh.SetTriangles(tris, sub);
             mesh.RecalculateNormals();
+            
+            meshCollider.sharedMesh = null;
+            meshCollider.sharedMesh = mesh;
+                // Refresh collider and set mesh again
         }
 
-        void TryAddVolume()
+        int FindSubMeshIndex(Mesh mesh, int triangleIndex)
+        {
+            int count = 0;
+            for (int i = 0; i < mesh.subMeshCount; i++)
+            {
+                int c = mesh.GetTriangles(i).Length / 3;
+                if (triangleIndex < count + c) return i;
+                count += c;
+            }
+            return -1;
+        }
+        void AddVolume()
         {
             Ray ray = _cam.ScreenPointToRay(Input.mousePosition);
+            if (!Physics.Raycast(ray, out RaycastHit hit, _reachDistance, _chunkLayer)) return;
+
+            float cellSize = _shapeSize;
+
+            Vector3Int offsetDirection = GetGridOffsetDirection(hit.normal);
+            Vector3Int hitGridPos = WorldToGridPosition(hit.point, cellSize);
+            Vector3Int targetGridPos = hitGridPos + offsetDirection;
             
-            if (!Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer))
-                return;
+            Vector3 targetPosition = GridToWorldPosition(targetGridPos, cellSize);
 
-            Vector3 pos = hit.point + hit.normal * 0.01f;
-            Quaternion rot = Quaternion.LookRotation(hit.normal);
+            targetPosition -= hit.normal * (cellSize * 0.5f);
 
-            GameObject tri = new("TriangleVolume")
+            Vector3 halfExtents = GetShapeHalfExtents();
+            Collider[] overlaps = Physics.OverlapBox(targetPosition, halfExtents, Quaternion.identity, _chunkLayer);
+
+            foreach (var col in overlaps)
             {
-                layer = hit.collider.gameObject.layer
-            };
+                if (col.gameObject.name.StartsWith("Volume_"))
+                {
+                    return;
+                }
+            }
 
-            tri.transform.SetPositionAndRotation(pos, rot);
+            Quaternion rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
+            // Rotate the shape so that its upward direction is along the surface normal
+            CreateShapeAt(targetPosition, rotation);
+        }
+
+        Vector3Int WorldToGridPosition(Vector3 worldPos, float cellSize)
+        {
+            return new Vector3Int
+            (
+                Mathf.FloorToInt(worldPos.x / cellSize),
+                Mathf.FloorToInt(worldPos.y / cellSize),
+                Mathf.FloorToInt(worldPos.z / cellSize)
+            );
+            // Divide the world coordinates by the cell size and round down
+        }
+
+        Vector3 GridToWorldPosition(Vector3Int gridPos, float cellSize)
+        {
+            return new Vector3
+            (
+                (gridPos.x + 0.5f) * cellSize,
+                (gridPos.y + 0.5f) * cellSize,
+                (gridPos.z + 0.5f) * cellSize
+            );
+            // Translate the cell coordinates back to the cell center in world coordinates
+        }
+
+        Vector3Int GetGridOffsetDirection(Vector3 normal)
+        {
+            Vector3Int direction = Vector3Int.zero;
+            normal = normal.normalized;
+
+            if (normal.x > 0.707f) direction.x = 1;
+            else if (normal.x < -0.707f) direction.x = -1;
+            else if (normal.y > 0.707f) direction.y = 1;
+            else if (normal.y < -0.707f) direction.y = -1;
+            else if (normal.z > 0.707f) direction.z = 1;
+            else if (normal.z < -0.707f) direction.z = -1;
+
+            // Determine the main direction of the normal 
+            // (X, Y or Z axis)
+
+            return direction;
+        }
+
+        Vector3 GetShapeHalfExtents()
+        {
+            float size = _shapeSize * 0.5f;
+            return _shape switch
+            {
+                ShapeType.Cube => new Vector3(size, size, size) * 0.95f,
+                ShapeType.Cylinder => new Vector3(size * 0.8f, size * 0.95f, size * 0.8f),
+                ShapeType.Triangle => new Vector3(size * 0.6f, size * 0.95f, size * 0.6f),
+                _ => 0.9f * size * Vector3.one,
+            };
+            // We return halfExtents with a small "reserve" so that the colliders do not stick
+        }
+
+        void CreateShapeAt(Vector3 position, Quaternion rotation)
+        {
+            switch (_shape)
+            {
+                case ShapeType.Cube:
+                    CreateCubeAt(position, rotation);
+                    break;
+                case ShapeType.Cylinder:
+                    CreateCylinderAt(position, rotation);
+                    break;
+                case ShapeType.Triangle:
+                    CreatePrismAt(position, rotation);
+                    break;
+            }
+        }
+
+        void CreateCubeAt(Vector3 p, Quaternion r)
+        {
+            var o = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ConfigureVolumeObject(o, p, r);
+            // o - primitive cube
+            // p - position
+            // r - material
             
-            var mf = tri.AddComponent<MeshFilter>();
-            var mr = tri.AddComponent<MeshRenderer>();
+            o.transform.localScale = Vector3.one * _shapeSize;
+        }
+
+        void CreateCylinderAt(Vector3 p, Quaternion r)
+        {
+            var o = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ConfigureVolumeObject(o, p, r);
+            // o - primitive cylinder
+            // p - position
+            // r - material
             
+            o.transform.localScale = new Vector3(_shapeSize, _shapeSize, _shapeSize);
+        }
+
+        void CreatePrismAt(Vector3 p, Quaternion r)
+        {
+            var o = new GameObject("Volume_TriangularPrism");
+            // Empty prism object
+            ConfigureVolumeObject(o, p, r);
+            // o - primitive cylinder
+            // p - position
+            // r - material
+            
+            var mf = o.AddComponent<MeshFilter>();
+            var mr = o.AddComponent<MeshRenderer>();
             mr.material = _addMaterial;
             
-            var mc = tri.AddComponent<MeshCollider>();
-
-            Mesh m = new();
+            var mc = o.AddComponent<MeshCollider>();
+            mc.convex = true;
             
-            float s = _triangleSize;
-            float h = _triangleHeight;
+            mf.mesh = GenerateTriangularPrismMesh(_shapeSize, _shapeSize);
+            mc.sharedMesh = mf.mesh;
 
-            Vector3 v0 = new(0, 0, 0);
-            Vector3 v1 = new(s, 0, 0);
-            Vector3 v2 = new(0, s, 0);
-            Vector3 v3 = new(s/2f, 0, h);
+            // mf - MeshFilter
+            // mr - MesRenderer
+            // mc - MeshCollider
+        }
 
-            m.vertices = new Vector3[] { v0, v1, v2, v3 };
+        void ConfigureVolumeObject(GameObject obj, Vector3 position, Quaternion rotation)
+        {
+            obj.name = $"Volume_{_shape}";
+            obj.layer = _chunkLayerIndex;
+            obj.transform.SetPositionAndRotation(position, rotation);
+            if (obj.TryGetComponent<MeshRenderer>(out var renderer)) renderer.material = _addMaterial;
+            
+            if (obj.TryGetComponent<Collider>(out var collider)) collider.isTrigger = false;
+        }
 
-            m.triangles = new int[]
+        Mesh GenerateTriangularPrismMesh(float width, float height)
+        {
+            float hw = width * 0.5f;
+            float hh = height * 0.5f;
+            // hw - half width of prism obj
+            // hh - half height of prism obj
+
+            Vector3[] vertices = new Vector3[]
             {
-                0, 2, 1,
-                0, 1, 3,
-                1, 2, 3,
-                2, 0, 3
+                new(-hw, -hh, hw),
+                new(hw, -hh, hw),
+                new(0, -hh, -hw),
+                new(-hw, hh, hw),
+                new(hw, hh, hw),
+                new(0, hh, -hw)
+            };
+            // 6 Prism vertices
+
+            int[] triangles = new int[]
+            {
+                0, 2, 1, // Bottom
+                3, 4, 5, // Top
+                0, 1, 4, 0, 4, 3, // Front
+                1, 2, 5, 1, 5, 4, // Right
+                2, 0, 3, 2, 3, 5 // Left
+            };
+            // Prism indexes. 5 Faces
+
+            Mesh mesh = new()
+            {
+                vertices = vertices,
+                triangles = triangles
             };
 
-            m.RecalculateNormals();
-            mf.mesh = m;
-            mc.sharedMesh = m;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            
+            return mesh;
+        }
+
+        private int GetFirstLayerFromMask(LayerMask mask)
+        {
+            int layerMask = mask.value;
+            if (layerMask == 0) return 0;
+            // If no mask - retrun
+            
+            int layer = 0;
+            while ((layerMask & (1 << layer)) == 0) layer++;
+            // Shift the bit mask until find first bit set
+
+            return layer;
         }
     }
 }
