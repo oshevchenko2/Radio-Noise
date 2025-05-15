@@ -220,9 +220,12 @@ namespace TerrainGenerator
             return mesh;
         }
 
+        private Shader _shader;
+
         void Start()
         // The fun part starts
         {
+            _shader = Shader.Find("HDRenderPipeline/Lit");
             InitializeMeshPool();
             // Fills the pool with empty meshes, 
             // read in the method itself
@@ -236,7 +239,6 @@ namespace TerrainGenerator
 
             GenerateBiomeMap();
             StartCoroutine(GenerateWorld());
-            gameObject.SetActive(false);
         }
 
         private void Update()
@@ -369,9 +371,9 @@ namespace TerrainGenerator
                 GenerateChunk(coord);
 
                 countThisFrame++;
-                if (countThisFrame >= 16)
+                if (countThisFrame >= 30)
                 {
-                    countThisFrame = 30;
+                    countThisFrame = 300;
                     yield return null;
                 }
             }
@@ -804,7 +806,7 @@ namespace TerrainGenerator
 
         Material CreateMaterial(Color color)
         {
-            Material mat = new(Shader.Find("HDRenderPipeline/Lit"))
+            Material mat = new(_shader)
             {
                 color = color
             };

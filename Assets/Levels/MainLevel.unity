@@ -1100,9 +1100,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ChunkSize: 32
-  WorldSize: 128
+  WorldSize: 32
   WorldVerticalOffset: 0
-  IsoLevel: 8
+  IsoLevel: 3
   DesertMaterial: {fileID: 2100000, guid: 711174b98d2b3d84782c713f9caf5714, type: 2}
   PlainsMaterial: {fileID: 2100000, guid: 4a189cbca60c9fa41ae1c0a94d1671be, type: 2}
   ForestMaterial: {fileID: 2100000, guid: e28dded354512ca41a0f101307e96366, type: 2}
@@ -1625,8 +1625,7 @@ MonoBehaviour:
   _chunkLayer:
     serializedVersion: 2
     m_Bits: 8
-  _triangleSize: 1
-  _triangleHeight: 1
+  _shapeSize: 0.5
   _addMaterial: {fileID: 2100000, guid: f1888d1f95dbd7247955beee78a3e849, type: 2}
 --- !u!1 &1916390631
 GameObject:
