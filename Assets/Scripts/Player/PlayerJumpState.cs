@@ -1,3 +1,4 @@
+// This project & code is licensed under the MIT License. See the ./LICENSE file for details.
 using UnityEngine;
 using Movement;
 using UnityEditor.Experimental.GraphView;
