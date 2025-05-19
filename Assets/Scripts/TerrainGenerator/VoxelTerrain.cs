@@ -16,51 +16,55 @@ namespace TerrainGenerator
 {
     public class VoxelTerrain : MonoBehaviour
     {
-        public int ChunkSize = 16; 
+        [SerializeField] private int _chunkSize = 16; 
         // Size of one chunk(in meters).
         // Set only in geometric progression with denominator 2 starting with 8.
         // Otherwise - memory leak or unity crush.
 
-        public int WorldSize = 256;
+        [SerializeField] private int _worldSize = 256;
         // World size(in meters).
         // I advise to set it as a multiple of ChunkSize, otherwise there will be joints along the radius where there will only be the bot layer.
         // If the value is negative or less, than ChunkSize - world will simply not be generated and will return an ArgumentOutOfRangeExeption error.
 
-        private readonly int ChunkHeight = 32;
+        private readonly int _chunkHeight = 32;
         // I do not recommend changing it.
         // Coz if u set it lower, there will be cuts in height, which are especially visible in the mountains
         // And if u set it higher, there the world will againg be cut off, but already both in lower and higher heights.
         // I think it's unity bug.
 
-        public float WorldVerticalOffset = 0f;
+        private readonly int _worldVerticalOffset = 0;
         // Set the world higher by a central meter without changing ChunkHeight.
         // I do not recommend changing it, only 4 debuging
         // Coz read comments in "ChunkHeight" var
 
-        public float IsoLevel = 0f;
+        [SerializeField] private int _isoLevel = 8;
         // It may look like WorldVerticalOffset, but it's not.
         // IsoLevel sets the threshold density at which the Marching Cubes algorithm decides where the surface passes:
         // points with density below this threshold are considered “inside” the object,
         // those above are considered “outside”, or vice versa depending on the convention.
         // Read https://wikipedia.org/wiki/Marching_cubes
 
-        public Material DesertMaterial;
-        public Material PlainsMaterial;
-        public Material ForestMaterial;
-        public Material SwampMaterial;
-        public Material MountainsMaterial;
+        [SerializeField] private Material _desertMaterial;
+        [SerializeField] private Material _plainsMaterial;
+        [SerializeField] private Material _forestMaterial;
+        [SerializeField] private Material _swampMaterial;
+        [SerializeField] private Material _mountainsMaterial;
 
         // Materials for Biomes
         // ToDo: Make them some textures, coz the ones taken from the internet look like shit
         // ToDo: MOOOOOOOOORE BIOMES! MOOOOOOOOORE MATERIALS! MOOOOOOOOORE SHIT! MOOOOOOOOORE TEXTURES FROM INTERNET!
 
-        public Material StoneMaterial;
-        public Material WaterMaterial;
+        [SerializeField] private Material _stoneMaterial;
+        [SerializeField] private Material _waterMaterial;
 
         // Materials 4 minerals & resources
         // ToDo: Add more ores and rocks
         // ToDo: Add more realistic water
         // ToDo: Fix water, coz it appears too low and the height only changes in materials from shader
+
+        private Shader _shader;
+
+        //Shader 2 Find, if materials above missing
 
         private readonly Dictionary<Vector2Int, GameObject> _chunkObjects = new();
         
@@ -123,13 +127,13 @@ namespace TerrainGenerator
 
             GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
             // A GameObject of a chunk with a readable name is created
-            chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
+            chunkObject.transform.position = new Vector3(chunkCoord.x * _chunkSize, 0, chunkCoord.y * _chunkSize);
             // Puts it in the world on a grid: chunk coordinates x chunk size.
             _chunkObjects[chunkCoord] = chunkObject;
             // Saves the reference to a dictionary so that I can quickly find and overwrite this chunk later on
 
-            float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
-            float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
+            float centerX = chunkCoord.x * _chunkSize + _chunkSize / 2f;
+            float centerZ = chunkCoord.y * _chunkSize + _chunkSize / 2f;
             // World coordinates of the center of the chunk, needed 2 estimate which biomes “predominate” in the middle of the block.
             
             Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
@@ -153,7 +157,7 @@ namespace TerrainGenerator
             bottomObj.transform.parent = chunkObject.transform;
             bottomObj.transform.localPosition = Vector3.zero;
             MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
-            bottomRend.material = StoneMaterial;
+            bottomRend.material = _stoneMaterial;
             MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
             MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
             bottomMF.mesh = MeshDataToMesh(data.BottomMesh);
@@ -163,7 +167,7 @@ namespace TerrainGenerator
             caveObj.transform.parent = chunkObject.transform;
             caveObj.transform.localPosition = Vector3.zero;
             MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
-            caveRend.material = StoneMaterial;
+            caveRend.material = _stoneMaterial;
             MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
             MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
             caveMF.mesh = MeshDataToMesh(data.CaveMesh);
@@ -173,7 +177,7 @@ namespace TerrainGenerator
             stoneObj.transform.parent = chunkObject.transform;
             stoneObj.transform.localPosition = Vector3.zero;
             var stoneRend = stoneObj.AddComponent<MeshRenderer>();
-            stoneRend.material = StoneMaterial;
+            stoneRend.material = _stoneMaterial;
             var stoneMF = stoneObj.AddComponent<MeshFilter>();
             var stoneMC = stoneObj.AddComponent<MeshCollider>();
             stoneMF.mesh = MeshDataToMesh(data.StoneMesh);
@@ -220,12 +224,11 @@ namespace TerrainGenerator
             return mesh;
         }
 
-        private Shader _shader;
-
         void Start()
         // The fun part starts
         {
             _shader = Shader.Find("HDRenderPipeline/Lit");
+
             InitializeMeshPool();
             // Fills the pool with empty meshes, 
             // read in the method itself
@@ -239,6 +242,8 @@ namespace TerrainGenerator
 
             GenerateBiomeMap();
             StartCoroutine(GenerateWorld());
+
+            //gameObject.SetActive(false);
         }
 
         private void Update()
@@ -261,7 +266,7 @@ namespace TerrainGenerator
 
         void GenerateBiomeMap()
         {
-            int numChunks = WorldSize / ChunkSize;
+            int numChunks = _worldSize / _chunkSize;
             // Here we count how many chunks along the X (and Z) axis will fit in the world.
             // If, say, WorldSize = 256 and ChunkSize = 16, we get numChunks = 16
             var biomeJob = new BiomeGenerationJob
@@ -351,15 +356,15 @@ namespace TerrainGenerator
         IEnumerator GenerateWorld()
         {
             var chunkCoords = new List<Vector2Int>();
-            for (int x = 0; x < WorldSize; x += ChunkSize)
-                for (int z = 0; z < WorldSize; z += ChunkSize)
-                    chunkCoords.Add(new Vector2Int(x / ChunkSize, z / ChunkSize));
+            for (int x = 0; x < _worldSize; x += _chunkSize)
+                for (int z = 0; z < _worldSize; z += _chunkSize)
+                    chunkCoords.Add(new Vector2Int(x / _chunkSize, z / _chunkSize));
 
             var playerPos = transform.position;
             chunkCoords.Sort((a, b) =>
             {
-                Vector2 pa = new(a.x * ChunkSize, a.y * ChunkSize);
-                Vector2 pb = new(b.x * ChunkSize, b.y * ChunkSize);
+                Vector2 pa = new(a.x * _chunkSize, a.y * _chunkSize);
+                Vector2 pb = new(b.x * _chunkSize, b.y * _chunkSize);
                 float da = Vector2.SqrMagnitude(pa - new Vector2(playerPos.x, playerPos.z));
                 float db = Vector2.SqrMagnitude(pb - new Vector2(playerPos.x, playerPos.z));
                 return da.CompareTo(db);
@@ -374,15 +379,15 @@ namespace TerrainGenerator
                 if (countThisFrame >= 30)
                 {
                     countThisFrame = 300;
-                    yield return null;
+                    yield return new WaitForSecondsRealtime(0.5f);
                 }
             }
         }
 
         void GenerateChunk(Vector2Int chunkCoord)
         {
-            float centerX = chunkCoord.x * ChunkSize + ChunkSize / 2f;
-            float centerZ = chunkCoord.y * ChunkSize + ChunkSize / 2f;
+            float centerX = chunkCoord.x * _chunkSize + _chunkSize / 2f;
+            float centerZ = chunkCoord.y * _chunkSize + _chunkSize / 2f;
             // World coordinates of the center of the chunk, needed 2 estimate which biomes “predominate” in the middle of the block.
             
             Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
@@ -396,11 +401,11 @@ namespace TerrainGenerator
                             out float[,,] caveField,
                             out float[,,] stoneField,
                             out float[,,] topField,
-                            ChunkHeight);
+                            _chunkHeight);
 
             GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
             // A GameObject of a chunk with a readable name is created
-            chunkObject.transform.position = new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize);
+            chunkObject.transform.position = new Vector3(chunkCoord.x * _chunkSize, 0, chunkCoord.y * _chunkSize);
             // Puts it in the world on a grid: chunk coordinates x chunk size.
             
             int layerId = LayerMask.NameToLayer("Chunk");
@@ -423,7 +428,7 @@ namespace TerrainGenerator
             bottomObj.transform.parent = chunkObject.transform;
             bottomObj.transform.localPosition = Vector3.zero;
             MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
-            bottomRend.material = StoneMaterial;
+            bottomRend.material = _stoneMaterial;
             MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
             bottomMF.mesh = GenerateMesh(bottomField);
             MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
@@ -433,7 +438,7 @@ namespace TerrainGenerator
             caveObj.transform.parent = chunkObject.transform;
             caveObj.transform.localPosition = Vector3.zero;
             MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
-            caveRend.material = StoneMaterial;
+            caveRend.material = _stoneMaterial;
             MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
             caveMF.mesh = GenerateMesh(caveField);
             MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
@@ -444,7 +449,7 @@ namespace TerrainGenerator
             stoneObj.transform.parent = chunkObject.transform;
             stoneObj.transform.localPosition = Vector3.zero;
             var stoneRend = stoneObj.AddComponent<MeshRenderer>();
-            stoneRend.material = StoneMaterial;
+            stoneRend.material = _stoneMaterial;
             var stoneMF = stoneObj.AddComponent<MeshFilter>();
             stoneMF.mesh = GenerateMesh(stoneField);
             var stoneMC = stoneObj.AddComponent<MeshCollider>();
@@ -471,7 +476,7 @@ namespace TerrainGenerator
                 Material mat0 = GetMaterialForBiome(dominantBiome0);
                 Material mat1 = GetMaterialForBiome(dominantBiome1);
                 topRend.materials = new Material[] { mat0, mat1 };
-                topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * ChunkSize, 0, chunkCoord.y * ChunkSize), dominantBiome0, dominantBiome1);
+                topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * _chunkSize, 0, chunkCoord.y * _chunkSize), dominantBiome0, dominantBiome1);
             }
             topObj.layer = layerId;
             MeshCollider topMC = topObj.AddComponent<MeshCollider>();
@@ -485,26 +490,26 @@ namespace TerrainGenerator
                                     out float[,,] topField,
                                     int chunkHeight)
         {
-            int size = ChunkSize + 1;
+            int size = _chunkSize + 1;
             // Alas, to avoid the error in Unity, you need to consider one more point on each axis than the number of cubes
             // Due to a peculiarity of the Marching Cubes method.
             // Well, in order not to forget accidentally or not to calculate, thus losing nerves and time 2 debug this error, 
             // I'd rather spend 4 bytes, not such a loss.
-            bottomField = new float[size, ChunkHeight + 1, size];
-            caveField = new float[size, ChunkHeight + 1, size];
-            stoneField  = new float[size, ChunkHeight + 1, size];
+            bottomField = new float[size, _chunkHeight + 1, size];
+            caveField = new float[size, _chunkHeight + 1, size];
+            stoneField  = new float[size, _chunkHeight + 1, size];
             topField = new float[size, size, size];
             // topField is 3d only in X and Z with the same size, and in Y size too - it stores “surface” densities down 2 ground level.
 
-            for (int x = 0; x <= ChunkSize; x++)
+            for (int x = 0; x <= _chunkSize; x++)
             {
                 for (int y = 0; y <= chunkHeight; y++)
                 {
-                    for (int z = 0; z <= ChunkSize; z++)
+                    for (int z = 0; z <= _chunkSize; z++)
                     {
-                        float worldX = x + chunkCoord.x * ChunkSize;
-                        float worldY = y + WorldVerticalOffset;
-                        float worldZ = z + chunkCoord.y * ChunkSize;
+                        float worldX = x + chunkCoord.x * _chunkSize;
+                        float worldY = y + _worldVerticalOffset;
+                        float worldZ = z + chunkCoord.y * _chunkSize;
 
                         var weights = SampleBiomeWeights(worldX, worldZ);
                         // Give the dictionary biome → [0...1]
@@ -528,7 +533,7 @@ namespace TerrainGenerator
                             blendedHeight += noise * s.heightMultiplier * w;
                         }
 
-                        float clampedBaseHeight = Mathf.Min(blendedHeight, ChunkSize - 1);
+                        float clampedBaseHeight = Mathf.Min(blendedHeight, _chunkSize - 1);
                         // Limits the height so that it does not “look” outside the chunk
                         float density = worldY - clampedBaseHeight;
                         // Difference between the current node height and the reference surface:
@@ -541,7 +546,7 @@ namespace TerrainGenerator
                         //bottomField[x, y, z] = (worldY < bottomThreshold)
                           //  ? density
                             //: 100f;
-                        float bottomLimit = WorldVerticalOffset + 0f; // Замените 8f на нужную вам "высоту нижнего слоя"
+                        float bottomLimit = _worldVerticalOffset + 0f; // Замените 8f на нужную вам "высоту нижнего слоя"
                         bottomField[x, y, z] = (worldY <= bottomLimit) ? density : 100f;
                         // If the point is below the lower threshold, we record the real density.
                         // Otherwise, set a large positive value (fill “outside” the mesh),
@@ -713,7 +718,7 @@ namespace TerrainGenerator
             {
                 Vector3 worldPos = pos + cornerPositions[i];
                 cubeCorners[i] = densityField[(int)worldPos.x, (int)worldPos.y, (int)worldPos.z];
-                if (cubeCorners[i] < IsoLevel) cubeIndex |= 1 << i;
+                if (cubeCorners[i] < _isoLevel) cubeIndex |= 1 << i;
                 // 1 << i is a bitwise shift.
                 // For example, if i = 3, then 1 << 3 is 00001000. 
                 // Bit number 3 is set to 1.
@@ -770,13 +775,13 @@ namespace TerrainGenerator
             // Simply put, if accurate comparisons are needed - Matf.Epsilon
             // For practical tasks, 1e-7f
 
-            if (Mathf.Abs(v1 - IsoLevel) < eps) return p1;
-            if (Mathf.Abs(v2 - IsoLevel) < eps) return p2;
+            if (Mathf.Abs(v1 - _isoLevel) < eps) return p1;
+            if (Mathf.Abs(v2 - _isoLevel) < eps) return p2;
             if (Mathf.Abs(v2 - v1) < eps) return (p1 + p2) * 0.5f;
             // v1, v2: These are the values of a scalar field (e.g. density) at the two ends of the cube edge.
             // They determine how far each vertex is above or below a given isosurface level (IsoLevel).
             
-            float t = (IsoLevel - v1) / (v2 - v1);
+            float t = (_isoLevel - v1) / (v2 - v1);
             // This is an interpolation parameter that determines how far between p1 and p2 is the intersection point of the isosurface with the edge.
             // The value of t ranges from 0 to 1, where 0 corresponds to p1 and 1 corresponds to p2
             t = Mathf.Clamp01(t);
@@ -794,12 +799,12 @@ namespace TerrainGenerator
         {
             return biome switch
             {
-                BiomeType.Desert => (Material)(DesertMaterial != null ? DesertMaterial : CreateMaterial(Color.yellow)),
-                BiomeType.Plains => (Material)(PlainsMaterial != null ? PlainsMaterial : CreateMaterial(Color.green)),
-                BiomeType.Forest => (Material)(ForestMaterial != null ? ForestMaterial : CreateMaterial(new Color(0.13f, 0.55f, 0.13f))),
-                BiomeType.Swamp => (Material)(SwampMaterial != null ? SwampMaterial : CreateMaterial(new Color(0.3f, 0.5f, 0.3f))),
-                BiomeType.Mountains => (Material)(MountainsMaterial != null ? MountainsMaterial : CreateMaterial(Color.gray)),
-                BiomeType.Ocean => (Material)(WaterMaterial != null ? WaterMaterial : CreateMaterial(Color.white)),
+                BiomeType.Desert => (Material)(_desertMaterial != null ? _desertMaterial : CreateMaterial(Color.yellow)),
+                BiomeType.Plains => (Material)(_plainsMaterial != null ? _plainsMaterial : CreateMaterial(Color.green)),
+                BiomeType.Forest => (Material)(_forestMaterial != null ? _forestMaterial : CreateMaterial(new Color(0.13f, 0.55f, 0.13f))),
+                BiomeType.Swamp => (Material)(_swampMaterial != null ? _swampMaterial : CreateMaterial(new Color(0.3f, 0.5f, 0.3f))),
+                BiomeType.Mountains => (Material)(_mountainsMaterial != null ? _mountainsMaterial : CreateMaterial(Color.gray)),
+                BiomeType.Ocean => (Material)(_waterMaterial != null ? _waterMaterial : CreateMaterial(Color.white)),
                 _ => (Material)CreateMaterial(Color.white),
             };
         }
@@ -827,7 +832,7 @@ namespace TerrainGenerator
 
         Dictionary<BiomeType, float> SampleBiomeWeights(float worldX, float worldZ)
         {
-            Vector2 samplePos = new(worldX / ChunkSize, worldZ / ChunkSize);
+            Vector2 samplePos = new(worldX / _chunkSize, worldZ / _chunkSize);
             // Fractional coordinates of the point in “chunk units”
             Vector2Int baseChunk = new(Mathf.FloorToInt(samplePos.x), Mathf.FloorToInt(samplePos.y));
             // Integer indices of the chunk where the point is located, decrease the fractional part to get the “left-bottom” chunk
@@ -884,11 +889,11 @@ namespace TerrainGenerator
             List<int> trianglesSubmesh0 = new();
             List<int> trianglesSubmesh1 = new();
 
-            for(int x = 0; x < ChunkSize; x++)
+            for(int x = 0; x < _chunkSize; x++)
             {
-                for (int y = 0; y < ChunkSize; y++)
+                for (int y = 0; y < _chunkSize; y++)
                 {
-                    for (int z = 0; z < ChunkSize; z++)
+                    for (int z = 0; z < _chunkSize; z++)
                     {
                         MarchCubeMulti(new Vector3Int(x, y, z), densityField, vertices, trianglesSubmesh0, trianglesSubmesh1, chunkOrigin, dominantBiome0, dominantBiome1);
                         // A variant of MarchingCubesMulti that immediately determines to which submesh each triangle is assigned (under the first or second material) depending on its position within the mixing zone of the two dominant biomes.
@@ -926,7 +931,7 @@ namespace TerrainGenerator
             {
                 Vector3 localPos = pos + cornerPositions[i];
                 cubeCorners[i] = densityField[(int)localPos.x, (int)localPos.y, (int)localPos.z];
-                if (cubeCorners[i] < IsoLevel)
+                if (cubeCorners[i] < _isoLevel)
                     cubeIndex |= 1 << i;
             }
             // Is assembled bitwise: 4 each vertex where density < IsoLevel, set bit 1 << i
