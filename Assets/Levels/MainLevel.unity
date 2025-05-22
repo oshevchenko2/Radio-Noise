@@ -1099,8 +1099,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d212bc820aed7e44e98a7472b729bb14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _chunkSize: 16
-  _worldSize: 256
+  _chunkSize: 32
+  _worldSize: 64
   _isoLevel: 8
   _desertMaterial: {fileID: 2100000, guid: 711174b98d2b3d84782c713f9caf5714, type: 2}
   _plainsMaterial: {fileID: 2100000, guid: 4a189cbca60c9fa41ae1c0a94d1671be, type: 2}
@@ -1626,6 +1626,12 @@ MonoBehaviour:
     m_Bits: 8
   _shapeSize: 0.5
   _addMaterial: {fileID: 2100000, guid: f1888d1f95dbd7247955beee78a3e849, type: 2}
+  _cubeMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  _cylinderMesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  _prismMesh: {fileID: 0}
+  _cubeGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
+  _cylinderGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
+  _prismGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
 --- !u!1 &1916390631
 GameObject:
   m_ObjectHideFlags: 0

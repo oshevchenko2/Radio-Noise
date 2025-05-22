@@ -11,12 +11,26 @@ namespace Player
         [SerializeField] private float _shapeSize = 0.5f;
         [SerializeField] private Material _addMaterial;
         private ShapeType _shape = ShapeType.Triangle;
+        [SerializeField] private Mesh _cubeMesh;
+        [SerializeField] private Mesh _cylinderMesh;
+        [SerializeField] private Mesh _prismMesh;
+        [SerializeField] private GameObjectInstance _cubeGameObject;
+        [SerializeField] private GameObjectInstance _cylinderGameObject;
+        [SerializeField] private GameObjectInstance _prismGameObject;
+
+        [SerializeField] Dictionary<Type, GameObjectInstance> _shapeMeshes = new();
+
+        private float lastCheckObjectInstance = 0;
 
         private Camera _cam;
         private int _chunkLayerIndex;
 
         void Start()
         {
+            _shapeMeshes.Add(typeof(Cube), _cubeGameObject);
+            _shapeMeshes.Add(typeof(Cylinder), _cylinderGameObject);
+            _shapeMeshes.Add(typeof(Prism), _prismGameObject);
+            _prismMesh = GenerateTriangularPrismMesh(_shapeSize, _shapeSize);
             _cam = GetComponent<Camera>();
             _chunkLayerIndex = GetFirstLayerFromMask(_chunkLayer);
             // Convert LayerMask 2 a numeric layer index 4 easy invocation
@@ -29,6 +43,23 @@ namespace Player
             // Switch shape type
             if (Input.GetMouseButtonDown(0)) RemoveTriangle();
             if (Input.GetMouseButtonDown(1)) AddVolume();
+
+            if(Time.time - lastCheckObjectInstance > 3){
+                lastCheckObjectInstance = Time.time;
+
+                for(int i = 0; i < Shape.List.Count; i++)
+                {
+                    if(Shape.isNear(i, transform.position)){
+                        GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].position, Quaternion.identity);
+                        go.Camera = transform;
+                        go.Index = i;
+                    }
+                } 
+            }
+            
+            Graphics.DrawMeshInstanced(_cubeMesh, 0, _addMaterial, Shape.getMatrixArr<Cube>());            
+            Graphics.DrawMeshInstanced(_cylinderMesh, 0, _addMaterial, Shape.getMatrixArr<Cylinder>());            
+            Graphics.DrawMeshInstanced(_prismMesh, 0, _addMaterial, Shape.getMatrixArr<Prism>());            
         }
 
         void RemoveTriangle()
@@ -181,29 +212,40 @@ namespace Player
 
         void CreateCubeAt(Vector3 p, Quaternion r)
         {
-            var o = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            ConfigureVolumeObject(o, p, r);
+            //var o = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            //ConfigureVolumeObject(o, p, r);
+            
+            new Cube(p);
+            GameObjectInstance go = Instantiate(_cubeGameObject, p,Quaternion.identity);
+            go.Camera = transform;
+            go.Index = Cube.List.Count - 1;
+            
             // o - primitive cube
             // p - position
             // r - material
             
-            o.transform.localScale = Vector3.one * _shapeSize;
+            //o.transform.localScale = Vector3.one * _shapeSize;
         }
 
         void CreateCylinderAt(Vector3 p, Quaternion r)
         {
-            var o = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            ConfigureVolumeObject(o, p, r);
+            //var o = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            //ConfigureVolumeObject(o, p, r);
             // o - primitive cylinder
             // p - position
             // r - material
+
+             new Cylinder(p, r);
+            GameObjectInstance go = Instantiate(_cylinderGameObject, p,r);
+            go.Camera = transform;
+            go.Index = Cylinder.List.Count - 1;
             
-            o.transform.localScale = new Vector3(_shapeSize, _shapeSize, _shapeSize);
+            //o.transform.localScale = new Vector3(_shapeSize, _shapeSize, _shapeSize);
         }
 
         void CreatePrismAt(Vector3 p, Quaternion r)
         {
-            var o = new GameObject("Volume_TriangularPrism");
+            /*var o = new GameObject("Volume_TriangularPrism");
             // Empty prism object
             ConfigureVolumeObject(o, p, r);
             // o - primitive cylinder
@@ -219,10 +261,15 @@ namespace Player
             
             mf.mesh = GenerateTriangularPrismMesh(_shapeSize, _shapeSize);
             mc.sharedMesh = mf.mesh;
-
+            */
             // mf - MeshFilter
             // mr - MesRenderer
             // mc - MeshCollider
+
+            new Prism(p, r);
+            GameObjectInstance go = Instantiate(_prismGameObject, p,r);
+            go.Camera = transform;
+            go.Index = Prism.List.Count - 1;
         }
 
         void ConfigureVolumeObject(GameObject obj, Vector3 position, Quaternion rotation)
