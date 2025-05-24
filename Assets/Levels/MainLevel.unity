@@ -1630,7 +1630,7 @@ MonoBehaviour:
   _cylinderMesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
   _prismMesh: {fileID: 0}
   _cubeGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
-  _cylinderGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
+  _cylinderGameObject: {fileID: 8982884938002949884, guid: c8add14eb342b224f82b2ac1749f4c32, type: 3}
   _prismGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
 --- !u!1 &1916390631
 GameObject:

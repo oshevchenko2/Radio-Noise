@@ -49,17 +49,17 @@ namespace Player
 
                 for(int i = 0; i < Shape.List.Count; i++)
                 {
-                    if(Shape.isNear(i, transform.position)){
-                        GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].position, Quaternion.identity);
+                    if(Shape.IsNear(i, transform.position)){
+                        GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].Position, Quaternion.identity);
                         go.Camera = transform;
                         go.Index = i;
                     }
                 } 
             }
             
-            Graphics.DrawMeshInstanced(_cubeMesh, 0, _addMaterial, Shape.getMatrixArr<Cube>());            
-            Graphics.DrawMeshInstanced(_cylinderMesh, 0, _addMaterial, Shape.getMatrixArr<Cylinder>());            
-            Graphics.DrawMeshInstanced(_prismMesh, 0, _addMaterial, Shape.getMatrixArr<Prism>());            
+            Graphics.DrawMeshInstanced(_cubeMesh, 0, _addMaterial, Shape.GetMatrixArr<Cube>());            
+            Graphics.DrawMeshInstanced(_cylinderMesh, 0, _addMaterial, Shape.GetMatrixArr<Cylinder>());            
+            Graphics.DrawMeshInstanced(_prismMesh, 0, _addMaterial, Shape.GetMatrixArr<Prism>());            
         }
 
         void RemoveTriangle()
@@ -67,8 +67,26 @@ namespace Player
             var ray = _cam.ScreenPointToRay(Input.mousePosition);
             if (!Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer)) return;
             // If ray does'nt hit the layer at the _reachDistance - return
+
             var go = hit.collider.gameObject;
-            if (go.name.StartsWith("Volume_")) Destroy(go);
+            if (go.name.StartsWith("Volume_"))
+            {
+                var instance = go.GetComponent<GameObjectInstance>();
+                if (instance != null)
+                {
+                    if (instance.Index < Shape.List.Count)
+                    {
+                        Shape.List.RemoveAt(instance.Index);
+                        
+                        foreach (var obj in GameObjectInstance.ActiveInstances)
+                        {
+                            if (obj.Index > instance.Index) obj.Index--;
+                        }
+                    }
+                }
+                
+                Destroy(go);
+            }
             // If hit obj with prefix Volume_ - destroy it!
             
             var mf = hit.collider.GetComponent<MeshFilter>();
@@ -213,17 +231,20 @@ namespace Player
         void CreateCubeAt(Vector3 p, Quaternion r)
         {
             //var o = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            //ConfigureVolumeObject(o, p, r);
-            
-            new Cube(p);
-            GameObjectInstance go = Instantiate(_cubeGameObject, p,Quaternion.identity);
+
+            GameObjectInstance go = Instantiate(_cubeGameObject, p, r);
+
+            ConfigureVolumeObject(go.gameObject, p, r);
+
             go.Camera = transform;
             go.Index = Cube.List.Count - 1;
+            
+            new Cube(p);
             
             // o - primitive cube
             // p - position
             // r - material
-            
+
             //o.transform.localScale = Vector3.one * _shapeSize;
         }
 
@@ -235,7 +256,7 @@ namespace Player
             // p - position
             // r - material
 
-             new Cylinder(p, r);
+            new Cylinder(p, r);
             GameObjectInstance go = Instantiate(_cylinderGameObject, p,r);
             go.Camera = transform;
             go.Index = Cylinder.List.Count - 1;
