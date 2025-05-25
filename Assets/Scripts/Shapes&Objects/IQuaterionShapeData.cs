@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public interface IQuaternionShapeData : ShapeDataInterface
+public interface IQuaternionShapeData : IShapeDataInterface
 {
     Quaternion Quaternion{get;set;}
 }

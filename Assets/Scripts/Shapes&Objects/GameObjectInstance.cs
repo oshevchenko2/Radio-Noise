@@ -6,6 +6,7 @@ public class GameObjectInstance : MonoBehaviour
 {
     public Transform Camera;
     public int Index;
+    
     void Start()
     {
         StartCoroutine(Wait4());
@@ -17,22 +18,21 @@ public class GameObjectInstance : MonoBehaviour
     {
         while (true)
         {
-            yield return new WaitForSeconds(3);
-            if (Mathf.Abs(Camera.position.x - Cube.List[Index].Position.x) + Mathf.Abs(Camera.position.z - Cube.List[Index].Position.z) > 32)
+            yield return new WaitForSeconds(2);
+            try
             {
-                Cube.List[Index].IsSpawned = false;
+                if (Index >= 0 && Index < Shape.List.Count && 
+                Mathf.Abs(Camera.position.x - Shape.List[Index].Position.x) + 
+                Mathf.Abs(Camera.position.z - Shape.List[Index].Position.z) > 32)
+                {
+                    Shape.List[Index].IsSpawned = false;
+                    Destroy(gameObject);
+                }
+            }
+            catch
+            {
                 Destroy(gameObject);
             }
         }
-    }
-    
-    private void OnEnable()
-    {
-        ActiveInstances.Add(this);
-    }
-
-    private void OnDisable()
-    {
-        ActiveInstances.Remove(this);
     }
 }

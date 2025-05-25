@@ -16,6 +16,7 @@ namespace TerrainGenerator
 {
     public class VoxelTerrain : MonoBehaviour
     {
+        #region Variables
         [SerializeField] private int _chunkSize = 16; 
         // Size of one chunk(in meters).
         // Set only in geometric progression with denominator 2 starting with 8.
@@ -104,7 +105,11 @@ namespace TerrainGenerator
         // Queue<Mesh> that implements a pool of meshes 4 reuse.
         private const int INITIAL_POOL_SIZE = 100;
 
+        #endregion
+
         // MeshPool as protection + optimization from unnecessary use of meshes
+
+        #region Save-Load Sys
         public IEnumerator DestroyAllChunks()
         {
             while (_chunkObjects.Count > 0)
@@ -113,7 +118,7 @@ namespace TerrainGenerator
                 Destroy(_chunkObjects[key]);
                 _chunkObjects.Remove(key);
             }
-            
+
             yield return null;
         }
 
@@ -142,6 +147,8 @@ namespace TerrainGenerator
             BiomeType dominantBiome0 = sortedWeights[0].Key; // the main biome
             BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0; // the second “strongest” (or the same if only one)
 
+            int layerId = LayerMask.NameToLayer("Chunk");
+
             // If creating new layer, use:
             // GameObject layerNameObj = new("LayerName"); // Making container for layerNameObj with readable name
             // layerNameObj.transform.parent = chunkObject.transform; // Bind 2 the root of the chunk
@@ -159,8 +166,8 @@ namespace TerrainGenerator
             MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
             bottomRend.material = _stoneMaterial;
             MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
-            MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
             bottomMF.mesh = MeshDataToMesh(data.BottomMesh);
+            MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
             // Recreating bot layer
 
             GameObject caveObj = new("CaveLayer");
@@ -169,8 +176,9 @@ namespace TerrainGenerator
             MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
             caveRend.material = _stoneMaterial;
             MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
-            MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
             caveMF.mesh = MeshDataToMesh(data.CaveMesh);
+            MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
+            caveObj.layer = layerId;
             // Recreating caves
 
             GameObject stoneObj = new("StoneLayer");
@@ -179,8 +187,9 @@ namespace TerrainGenerator
             var stoneRend = stoneObj.AddComponent<MeshRenderer>();
             stoneRend.material = _stoneMaterial;
             var stoneMF = stoneObj.AddComponent<MeshFilter>();
-            var stoneMC = stoneObj.AddComponent<MeshCollider>();
             stoneMF.mesh = MeshDataToMesh(data.StoneMesh);
+            var stoneMC = stoneObj.AddComponent<MeshCollider>();
+            stoneObj.layer = layerId;
             // Creating Top Stone
 
             GameObject topObj = new("TopLayer");
@@ -188,7 +197,6 @@ namespace TerrainGenerator
             topObj.transform.localPosition = Vector3.zero;
             MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
             MeshFilter topMF = topObj.AddComponent<MeshFilter>();
-            MeshCollider topMC = topObj.AddComponent<MeshCollider>();
 
             // Top layer is little bit different
             // But..
@@ -209,6 +217,8 @@ namespace TerrainGenerator
             }
             // Recreating top
 
+            topObj.layer = layerId;
+            MeshCollider topMC = topObj.AddComponent<MeshCollider>();
             yield return null;
         }
 
@@ -223,6 +233,8 @@ namespace TerrainGenerator
             mesh.RecalculateNormals();
             return mesh;
         }
+
+        #endregion
 
         void Start()
         // The fun part starts
