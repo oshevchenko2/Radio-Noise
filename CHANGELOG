@@ -1,5 +1,12 @@
 # Unstable Development Branch ChangeLog
 
+## Prototype UnDev0.5.25.2025
+ - Load-save system fix
+ - Fixed error with undestroyable objects
+ - Work on the grass shader has begun
+ - TODO: Cylinder can't spawn because of bug
+ - TODO: Trees
+ - TODO: Menu
 
 ## Prototype UnDev0.5.11.2025
  - Added player interaction with World
