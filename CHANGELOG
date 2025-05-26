@@ -1,0 +1,33 @@
+# Unstable Development Branch ChangeLog
+
+## Prototype InDev 27/5/2025
+ - Full stable prototype release
+
+## Prototype UnDev0.5.25.2025
+ - Load-save system fix
+ - Fixed error with undestroyable objects
+ - Work on the grass shader has begun
+ - TODO: Cylinder can't spawn because of bug
+ - TODO: Trees
+ - TODO: Menu
+
+## Prototype UnDev0.5.11.2025
+ - Added player interaction with World
+ - Added menu blank
+ - Added Phone model
+ - Updated Pakcages
+ - Added DoTween animation plugin
+ - Build with 3 objects: Cube, Prism, Cylinder
+ - Dig Terrain
+
+## Prototype UnDev0.4.20.2025
+
+ - Added more complex caves
+ - Added blanks for ocean & water material
+
+## Prototype UnDev0.4.19.2025
+
+ - Added base terrain
+ - Added biomes
+ - Added World Save/Load system
+ - World system saves located in "C:\Users\'username'\AppData\LocalLow\DefaultCompany\RadioNoise6\world.radionoise"
