@@ -38,7 +38,7 @@ namespace TerrainGenerator
             else return;
         }
 
-        public void SaveWorld()
+        public async void SaveWorld()
         {
             if(Terrain == null)
             {
@@ -114,7 +114,8 @@ namespace TerrainGenerator
                 Data.ChunkDatas.Add(chunkData);
             }
             
-            File.WriteAllBytes(_filePath, ObjectToByteArray(Data));
+            byte[] dataBytes = ObjectToByteArray(Data);
+            await File.WriteAllBytesAsync(_filePath, dataBytes);
             
             Debug.Log("Saved to " + _filePath);
             Debug.Log(ObjectToByteArray(Data));

@@ -15,31 +15,27 @@ public abstract class Shape : IShapeDataInterface
 
     public virtual Matrix4x4 GetMatrix()
     {
-        return IsRenderingActive 
-            ? Matrix4x4.TRS(Position, Quaternion.identity, Vector3.one) 
-            : Matrix4x4.zero;
+        return IsRenderingActive ? Matrix4x4.TRS(Position, Quaternion.identity, Vector3.one) : Matrix4x4.zero;
     }
 
     public static Matrix4x4[] GetMatrixArr<T>() where T : Shape
     {
-        if (_cachedMatrices != null)
-            return _cachedMatrices;
+        if (_cachedMatrices != null) return _cachedMatrices;
 
         List<Matrix4x4> matrices = new();
         for (int i = 0; i < List.Count; i++)
         {
-            if (List[i] is T shape && shape.IsSpawned)
-                matrices.Add(shape.GetMatrix());
+            if (List[i] is T shape && shape.IsSpawned) matrices.Add(shape.GetMatrix());
         }
 
         _cachedMatrices = matrices.ToArray();
+
         return _cachedMatrices;
     }
 
     public static bool IsNear(int i, Vector3 pos)
     {
-        return Mathf.Abs(pos.x - List[i].Position.x) + Mathf.Abs(pos.z - List[i].Position.z) < 32 
-               && !List[i].IsSpawned;
+        return Mathf.Abs(pos.x - List[i].Position.x) + Mathf.Abs(pos.z - List[i].Position.z) < 32 && !List[i].IsSpawned;
     }
 
     public static void SafeRemoveAt(int index)

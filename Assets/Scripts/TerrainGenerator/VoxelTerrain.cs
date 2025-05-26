@@ -17,12 +17,12 @@ namespace TerrainGenerator
     public class VoxelTerrain : MonoBehaviour
     {
         #region Variables
-        [SerializeField] private int _chunkSize = 16; 
+        [SerializeField] private int _chunkSize = 16;
         // Size of one chunk(in meters).
         // Set only in geometric progression with denominator 2 starting with 8.
         // Otherwise - memory leak or unity crush.
 
-        [SerializeField] private int _worldSize = 256;
+        public int WorldSize = 256;
         // World size(in meters).
         // I advise to set it as a multiple of ChunkSize, otherwise there will be joints along the radius where there will only be the bot layer.
         // If the value is negative or less, than ChunkSize - world will simply not be generated and will return an ArgumentOutOfRangeExeption error.
@@ -68,11 +68,11 @@ namespace TerrainGenerator
         //Shader 2 Find, if materials above missing
 
         private readonly Dictionary<Vector2Int, GameObject> _chunkObjects = new();
-        
+
         // Dictionary 4 all chunkObj on & 4 scene
 
         private Dictionary<Vector2Int, BiomeType> _biomeMap = new();
-        
+
         // Dictionary 4 storage biome map
 
         private float _seedX, _seedZ;
@@ -104,6 +104,8 @@ namespace TerrainGenerator
         private static readonly Queue<Mesh> _meshPool = new();
         // Queue<Mesh> that implements a pool of meshes 4 reuse.
         private const int INITIAL_POOL_SIZE = 100;
+
+        private Dictionary<Vector2Int, Dictionary<Vector2Int, GameObject>> _chunkWalls = new();
 
         #endregion
 
@@ -140,7 +142,7 @@ namespace TerrainGenerator
             float centerX = chunkCoord.x * _chunkSize + _chunkSize / 2f;
             float centerZ = chunkCoord.y * _chunkSize + _chunkSize / 2f;
             // World coordinates of the center of the chunk, needed 2 estimate which biomes “predominate” in the middle of the block.
-            
+
             Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
             var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
             // Sort by descending weight and select the two largest values:
@@ -254,15 +256,14 @@ namespace TerrainGenerator
 
             GenerateBiomeMap();
             StartCoroutine(GenerateWorld());
-
             //gameObject.SetActive(false);
         }
 
         private void Update()
         {
-            if(Input.GetKeyDown(KeyCode.F6))
+            if (Input.GetKeyDown(KeyCode.F6))
             {
-                SceneManager.LoadSceneAsync(0);       
+                SceneManager.LoadSceneAsync(0);
             }
         }
 
@@ -278,7 +279,7 @@ namespace TerrainGenerator
 
         void GenerateBiomeMap()
         {
-            int numChunks = _worldSize / _chunkSize;
+            int numChunks = WorldSize / _chunkSize;
             // Here we count how many chunks along the X (and Z) axis will fit in the world.
             // If, say, WorldSize = 256 and ChunkSize = 16, we get numChunks = 16
             var biomeJob = new BiomeGenerationJob
@@ -315,15 +316,15 @@ namespace TerrainGenerator
             public NativeArray<BiomeType> biomeMap;
             // Output array where the calculated biome for each index is written.
 
-            public async void Execute(int index)
+            public void Execute(int index)
             {
                 int x = index / numChunks;
                 int z = index % numChunks;
-                
+
                 float elevation = noise.cnoise(new float2((x + seedX) * 0.05f, (z + seedZ) * 0.05f));
                 float temperature = noise.cnoise(new float2((x + seedX) * 0.02f, (z + seedZ) * 0.03f));
                 float humidity = noise.cnoise(new float2((x + seedX) * 0.03f, (z + seedZ) * 0.03f));
-                
+
                 /*Debug.Log("Chunk index: " + index);
                 Debug.Log("Elevation: " + elevation);
                 Debug.Log("Temperature: " + temperature);
@@ -368,8 +369,8 @@ namespace TerrainGenerator
         IEnumerator GenerateWorld()
         {
             var chunkCoords = new List<Vector2Int>();
-            for (int x = 0; x < _worldSize; x += _chunkSize)
-                for (int z = 0; z < _worldSize; z += _chunkSize)
+            for (int x = 0; x < WorldSize; x += _chunkSize)
+                for (int z = 0; z < WorldSize; z += _chunkSize)
                     chunkCoords.Add(new Vector2Int(x / _chunkSize, z / _chunkSize));
 
             var playerPos = transform.position;
@@ -401,15 +402,15 @@ namespace TerrainGenerator
             float centerX = chunkCoord.x * _chunkSize + _chunkSize / 2f;
             float centerZ = chunkCoord.y * _chunkSize + _chunkSize / 2f;
             // World coordinates of the center of the chunk, needed 2 estimate which biomes “predominate” in the middle of the block.
-            
+
             Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
             var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
             // Sort by descending weight and select the two largest values:
             BiomeType dominantBiome0 = sortedWeights[0].Key; // the main biome
             BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0; // the second “strongest” (or the same if only one)
-        
-            GenerateDensityField(chunkCoord, 
-                            out float[,,] bottomField, 
+
+            GenerateDensityField(chunkCoord,
+                            out float[,,] bottomField,
                             out float[,,] caveField,
                             out float[,,] stoneField,
                             out float[,,] topField,
@@ -419,10 +420,31 @@ namespace TerrainGenerator
             // A GameObject of a chunk with a readable name is created
             chunkObject.transform.position = new Vector3(chunkCoord.x * _chunkSize, 0, chunkCoord.y * _chunkSize);
             // Puts it in the world on a grid: chunk coordinates x chunk size.
-            
-            int layerId = LayerMask.NameToLayer("Chunk");
 
+            Vector2Int[] directions = new Vector2Int[]
+            {
+                Vector2Int.left,
+                Vector2Int.right,
+                Vector2Int.up,
+                Vector2Int.down
+            };
+
+            int layerId = LayerMask.NameToLayer("Chunk");
             _chunkObjects[chunkCoord] = chunkObject;
+
+            foreach (var dir in directions)
+            {
+                Vector2Int neighborCoord = chunkCoord + dir;
+                if (_chunkWalls.TryGetValue(neighborCoord, out var walls))
+                {
+                    Vector2Int oppositeDir = -dir;
+                    if (walls.TryGetValue(oppositeDir, out var wall))
+                    {
+                        GameObject.Destroy(wall);
+                        walls.Remove(oppositeDir);
+                    }
+                }
+            }
             // Saves the reference to a dictionary so that I can quickly find and overwrite this chunk later on
 
             // If creating new layer, use:
@@ -493,12 +515,21 @@ namespace TerrainGenerator
             topObj.layer = layerId;
             MeshCollider topMC = topObj.AddComponent<MeshCollider>();
             // Creating top layer
+
+            foreach (var dir in directions)
+            {
+                Vector2Int neighborCoord = chunkCoord + dir;
+                if (!_chunkObjects.ContainsKey(neighborCoord))
+                {
+                    CreateChunkWall(chunkCoord, dir, chunkObject);
+                }
+            }
         }
 
-        void GenerateDensityField(Vector2Int chunkCoord, 
-                                    out float[,,] bottomField, 
+        void GenerateDensityField(Vector2Int chunkCoord,
+                                    out float[,,] bottomField,
                                     out float[,,] caveField,
-                                    out float[,,] stoneField, 
+                                    out float[,,] stoneField,
                                     out float[,,] topField,
                                     int chunkHeight)
         {
@@ -509,7 +540,7 @@ namespace TerrainGenerator
             // I'd rather spend 4 bytes, not such a loss.
             bottomField = new float[size, _chunkHeight + 1, size];
             caveField = new float[size, _chunkHeight + 1, size];
-            stoneField  = new float[size, _chunkHeight + 1, size];
+            stoneField = new float[size, _chunkHeight + 1, size];
             topField = new float[size, size, size];
             // topField is 3d only in X and Z with the same size, and in Y size too - it stores “surface” densities down 2 ground level.
 
@@ -556,8 +587,8 @@ namespace TerrainGenerator
                         float topThreshold = blendedHeight - _topThickness;
 
                         //bottomField[x, y, z] = (worldY < bottomThreshold)
-                          //  ? density
-                            //: 100f;
+                        //  ? density
+                        //: 100f;
                         float bottomLimit = _worldVerticalOffset + 0f; // Замените 8f на нужную вам "высоту нижнего слоя"
                         bottomField[x, y, z] = (worldY <= bottomLimit) ? density : 100f;
                         // If the point is below the lower threshold, we record the real density.
@@ -584,7 +615,7 @@ namespace TerrainGenerator
                             float threshold = Mathf.SmoothStep(0.5f, 0.6f, volumeNoise);
 
                             if (threshold > 0.45f && threshold < 0.6f
-                                && noise.cnoise(pos * 0.08f + new float3(12,33,17)) > 0.1f)
+                                && noise.cnoise(pos * 0.08f + new float3(12, 33, 17)) > 0.1f)
                             {
                                 float caveDepthMod = Mathf.Lerp(-10f, -3f, (threshold - 0.4f) / 0.2f);
                                 caveField[x, y, z] = density + caveDepthMod;
@@ -601,7 +632,7 @@ namespace TerrainGenerator
                         }
 
                         float stoneLower = topThreshold - _stoneThickness;
-                        
+
                         if (worldY >= stoneLower && worldY < topThreshold)
                         {
                             stoneField[x, y, z] = worldY - clampedBaseHeight;
@@ -659,6 +690,63 @@ namespace TerrainGenerator
                     }
                 }
             }
+        }
+
+        void CreateChunkWall(Vector2Int chunkCoord, Vector2Int direction, GameObject parent)
+        {
+            float wallThickness = 2f;
+            float height = _chunkHeight;
+            float size = _chunkSize;
+            float halfThick = wallThickness * 0.5f;
+
+            float xOffset = _chunkSize / 2;
+            float zOffset = _chunkSize / 2;
+
+            if (direction.x != 0)
+            {
+                if (direction.x > 0)
+                {
+                    xOffset = size + halfThick;
+                }
+                else
+                {
+                    xOffset = -halfThick;
+                }
+            }
+
+            if (direction.y != 0)
+            {
+                if (direction.y > 0)
+                {
+                    zOffset = size + halfThick;
+                }
+                else
+                {
+                    zOffset = -halfThick;
+                }
+            }
+
+            Vector3 localOffset = new(xOffset, height * 0.5f, zOffset);
+
+            GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.name = $"Wall_{direction.x}_{direction.y}";
+            wall.transform.SetParent(parent.transform, false);
+            wall.transform.localPosition = localOffset;
+
+            Vector3 localScale = (direction.x != 0)
+                ? new Vector3(wallThickness, height, size)
+                : new Vector3(size, height, wallThickness);
+            wall.transform.localScale = localScale;
+
+            Destroy(wall.GetComponent<MeshFilter>());
+            Destroy(wall.GetComponent<MeshRenderer>());
+
+            if (!_chunkWalls.TryGetValue(chunkCoord, out var dict))
+            {
+                dict = new Dictionary<Vector2Int, GameObject>();
+                _chunkWalls[chunkCoord] = dict;
+            }
+            dict[direction] = wall;
         }
 
         private Mesh GetMeshFromPool()
@@ -752,7 +840,7 @@ namespace TerrainGenerator
                 int b = MarchingCubesTables.EdgeConnections[i, 1];
                 // a, b are the numbers of two corners of the cube connected by edge i.
                 // Example: edge 0 connects corner 0 and corner 1.
-                
+
                 Vector3 pA = pos + cornerPositions[a];
                 Vector3 pB = pos + cornerPositions[b];
                 // pA, pB - positions of angles a and b in space.
@@ -792,7 +880,7 @@ namespace TerrainGenerator
             if (Mathf.Abs(v2 - v1) < eps) return (p1 + p2) * 0.5f;
             // v1, v2: These are the values of a scalar field (e.g. density) at the two ends of the cube edge.
             // They determine how far each vertex is above or below a given isosurface level (IsoLevel).
-            
+
             float t = (_isoLevel - v1) / (v2 - v1);
             // This is an interpolation parameter that determines how far between p1 and p2 is the intersection point of the isosurface with the edge.
             // The value of t ranges from 0 to 1, where 0 corresponds to p1 and 1 corresponds to p2
@@ -891,7 +979,7 @@ namespace TerrainGenerator
 
             return weights;
         }
-        
+
         Mesh GenerateMeshWithTwoMaterials(float[,,] densityField, Vector3 chunkOrigin, BiomeType dominantBiome0, BiomeType dominantBiome1)
         {
             Mesh mesh = GetMeshFromPool();
@@ -901,7 +989,7 @@ namespace TerrainGenerator
             List<int> trianglesSubmesh0 = new();
             List<int> trianglesSubmesh1 = new();
 
-            for(int x = 0; x < _chunkSize; x++)
+            for (int x = 0; x < _chunkSize; x++)
             {
                 for (int y = 0; y < _chunkSize; y++)
                 {
@@ -931,7 +1019,7 @@ namespace TerrainGenerator
         {
             int cubeIndex = 0;
             float[] cubeCorners = new float[8];
-            
+
             Vector3[] cornerPositions = new Vector3[]
             {
                 new(0,0,0), new(1,0,0), new(1,0,1), new(0,0,1),
@@ -960,7 +1048,7 @@ namespace TerrainGenerator
                 {
                     int a = MarchingCubesTables.EdgeConnections[i, 0];
                     int b = MarchingCubesTables.EdgeConnections[i, 1];
-                    
+
                     edgeVertices[i] = InterpolateVerts(pos + cornerPositions[a], pos + cornerPositions[b], cubeCorners[a], cubeCorners[b]);
                 }
                 // For each active edge, take two angles a and b (from EdgeConnections) and call InterpolateVerts to find the intersection point on that edge
@@ -969,7 +1057,7 @@ namespace TerrainGenerator
             for (int i = 0; MarchingCubesTables.TriTable[cubeIndex, i] != -1; i += 3)
             {
                 int vertexIndex = vertices.Count;
-                
+
                 Vector3 v0 = edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i]];
                 Vector3 v1 = edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 1]];
                 Vector3 v2 = edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 2]];
@@ -987,7 +1075,7 @@ namespace TerrainGenerator
 
                 float w0 = triWeights.ContainsKey(dominantBiome0) ? triWeights[dominantBiome0] : 0f;
                 float w1 = triWeights.ContainsKey(dominantBiome1) ? triWeights[dominantBiome1] : 0f;
-                
+
                 bool assignToFirst = w0 >= w1;
                 // If w0 ≥ w1, the triangle goes to submesh 0, otherwise it goes to submesh 1
 
@@ -1062,9 +1150,9 @@ namespace TerrainGenerator
                 triangles = newTris
             };
             // Create a new Mesh, fill it with a list of unique vertices and updated triangles.
-            
+
             newMesh.RecalculateNormals();
-            
+
             return newMesh;
         }
         private Mesh GenerateConnectedTopMesh(float[,,] topField)

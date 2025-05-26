@@ -12,7 +12,7 @@ public class LicenseChecker : MonoBehaviour
         int result = CheckLicense(path);
         if (result == 0)
         {
-            Debug.LogError("License not found");
+            Debug.LogError("License not found. This may be a stolen game, game bug or fork that vioaltes MIT license terms");
             Application.Quit();
         }
         else if (result == 1)
