@@ -1,5 +1,8 @@
 # Unstable Development Branch ChangeLog
 
+## Prototype InDev 27/5/2025
+ - Full stable prototype release
+
 ## Prototype UnDev0.5.25.2025
  - Load-save system fix
  - Fixed error with undestroyable objects
