@@ -9,13 +9,12 @@ public abstract class Shape : IShapeDataInterface
 
     public Vector3 Position { get; set; }
     public bool IsSpawned { get; set; } = true;
-    public bool IsRenderingActive { get; set; } = true;
 
     public static event Action OnShapeListChanged;
 
     public virtual Matrix4x4 GetMatrix()
     {
-        return IsRenderingActive ? Matrix4x4.TRS(Position, Quaternion.identity, Vector3.one) : Matrix4x4.zero;
+        return  Matrix4x4.TRS(Position, Quaternion.identity, Vector3.one);
     }
 
     public static Matrix4x4[] GetMatrixArr<T>() where T : Shape

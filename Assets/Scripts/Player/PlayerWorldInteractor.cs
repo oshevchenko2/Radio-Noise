@@ -60,6 +60,7 @@ namespace Player
                 {
                     if(Shape.IsNear(i, transform.position)){
                         GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].Position, Quaternion.identity);
+                        Shape.List[i].IsSpawned = true;
                         go.Camera = transform;
                         go.Index = i;
                     }
@@ -67,7 +68,7 @@ namespace Player
             }
 
             // Cubes
-            var cubeList = Shape.List.Where(s => s is Cube && s.IsRenderingActive).Cast<Cube>().ToList();
+            var cubeList = Shape.List.Where(s => s is Cube).Cast<Cube>().ToList();
             var cubeMats = new Matrix4x4[cubeList.Count];
             for (int i = 0; i < cubeList.Count; i++)
                 cubeMats[i] = cubeList[i].GetMatrix();
@@ -75,7 +76,7 @@ namespace Player
                 Graphics.DrawMeshInstanced(_cubeMesh, 0, _addMaterial, cubeMats);
 
             // Cylinders
-            var cylList = Shape.List.Where(s => s is Cylinder && s.IsRenderingActive).Cast<Cylinder>().ToList();
+            var cylList = Shape.List.Where(s => s is Cylinder).Cast<Cylinder>().ToList();
             var cylMats = new Matrix4x4[cylList.Count];
             for (int i = 0; i < cylList.Count; i++)
                 cylMats[i] = cylList[i].GetMatrix();
@@ -83,7 +84,7 @@ namespace Player
                 Graphics.DrawMeshInstanced(_cylinderMesh, 0, _addMaterial, cylMats);
 
             // Prisms
-            var prismList = Shape.List.Where(s => s is Prism && s.IsRenderingActive).Cast<Prism>().ToList();
+            var prismList = Shape.List.Where(s => s is Prism).Cast<Prism>().ToList();
             var prismMats = new Matrix4x4[prismList.Count];
             for (int i = 0; i < prismList.Count; i++)
                 prismMats[i] = prismList[i].GetMatrix();
@@ -103,7 +104,6 @@ namespace Player
                 var inst = go.GetComponent<GameObjectInstance>();
                 if (inst != null && inst.Index >= 0 && inst.Index < Shape.List.Count)
                 {
-                    Shape.List[inst.Index].IsRenderingActive = false;
                     Shape.SafeRemoveAt(inst.Index);
                     
                     foreach (var o in GameObjectInstance.ActiveInstances)
@@ -323,7 +323,7 @@ namespace Player
 
             new Prism(p, r);
 
-            GameObjectInstance go = Instantiate(_cylinderGameObject, p, r);
+            GameObjectInstance go = Instantiate(_prismGameObject, p, r);
             ConfigureVolumeObject(go.gameObject, p, r);
 
             go.Camera = transform;
