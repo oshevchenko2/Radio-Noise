@@ -1,16 +1,33 @@
 # Stable Development Branch ChangeLog
 
-## Prototype InDev0.4.28.2025
- - Left comments in the code for easy operation and modding/forks
- - Left license reference in VoxelTerrain.cs
- - Small code optimization
- - Water added
- - Increased chances for different biomes
- - Added an extra stone layer between the cave layer and the top layer
- - Added smoothing of biomes and adding weights to them
- - Better MarchingCubes interpolation
- - Increased values of world seeds range
- - World saving works better
+## Prototype InDev 30/5/2025
+ - Fixed object placement bug
+ - World Generation code optimised
+ - Fixed Lags on Start
+ - Added SFX to Menu
+ - Fixed in Menu Credits image issues
+ - Fixed objects deleting bug
+ - Fixed Save/Load issue
+ 
+## Prototype InDev 27/5/2025
+ - Full stable prototype release
+
+## Prototype UnDev0.5.25.2025
+ - Load-save system fix
+ - Fixed error with undestroyable objects
+ - Work on the grass shader has begun
+ - TODO: Cylinder can't spawn because of bug
+ - TODO: Trees
+ - TODO: Menu
+
+## Prototype UnDev0.5.11.2025
+ - Added player interaction with World
+ - Added menu blank
+ - Added Phone model
+ - Updated Pakcages
+ - Added DoTween animation plugin
+ - Build with 3 objects: Cube, Prism, Cylinder
+ - Dig Terrain
 
 ## Prototype UnDev0.4.20.2025
 

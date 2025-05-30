@@ -3,12 +3,13 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - Player 2
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Chunk
   - Water
   - UI
   - 

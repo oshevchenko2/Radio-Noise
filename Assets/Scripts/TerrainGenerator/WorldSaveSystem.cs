@@ -38,7 +38,7 @@ namespace TerrainGenerator
             else return;
         }
 
-        public void SaveWorld()
+        public async void SaveWorld()
         {
             if(Terrain == null)
             {
@@ -80,6 +80,7 @@ namespace TerrainGenerator
 
                 Transform bottomTransform = chunkObj.transform.Find("BottomLayer");
                 Transform caveTransform = chunkObj.transform.Find("CaveLayer");
+                Transform stoneTransform = chunkObj.transform.Find("StoneLayer");
                 Transform topTransform = chunkObj.transform.Find("TopLayer");
 
                 if (bottomTransform != null)
@@ -96,17 +97,25 @@ namespace TerrainGenerator
                         chunkData.CaveMesh = MeshToMeshData(mf.mesh);
                 }
 
-                if (topTransform != null)
+                if (stoneTransform != null)
                 {
-                    MeshFilter mf = topTransform.GetComponent<MeshFilter>();
+                    MeshFilter mf = stoneTransform.GetComponent<MeshFilter>();
                     if (mf != null && mf.mesh != null)
-                        chunkData.TopMesh = MeshToMeshData(mf.mesh);
+                        chunkData.StoneMesh = MeshToMeshData(mf.mesh);
                 }
+
+                if (topTransform != null)
+                    {
+                        MeshFilter mf = topTransform.GetComponent<MeshFilter>();
+                        if (mf != null && mf.mesh != null)
+                            chunkData.TopMesh = MeshToMeshData(mf.mesh);
+                    }
 
                 Data.ChunkDatas.Add(chunkData);
             }
             
-            File.WriteAllBytes(_filePath, ObjectToByteArray(Data));
+            byte[] dataBytes = ObjectToByteArray(Data);
+            await File.WriteAllBytesAsync(_filePath, dataBytes);
             
             Debug.Log("Saved to " + _filePath);
             Debug.Log(ObjectToByteArray(Data));
