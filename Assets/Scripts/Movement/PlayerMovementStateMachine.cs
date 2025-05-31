@@ -20,6 +20,7 @@ namespace Movement
             }
             CurrentState.Update();
         }
+        
         public void Begin(PlayerMovementState state)
         {
             _stack = new PlayerMovementStack();
