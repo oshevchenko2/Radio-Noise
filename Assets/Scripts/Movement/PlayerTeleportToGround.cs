@@ -8,45 +8,75 @@ public class PlayerTeleport : MonoBehaviour
     
     [SerializeField] private float rayLength = 100f;
     [SerializeField] private float yOffset = 0.5f;
+
     [SerializeField] private LayerMask groundLayer;
+
+    [SerializeField] private GameObject _loadingScreen;
+
+    void Awake()
+    {
+        if (_terrain == null) return;
+
+        Vector3 randomPosition = new(Random.Range(0, _terrain.WorldSize), 30, Random.Range(0, _terrain.WorldSize));
+
+        if (TryGetComponent<CharacterController>(out var controller))
+        {
+            controller.enabled = false;
+        
+            transform.position = randomPosition;
+        
+            controller.enabled = true;
+        }
+        else
+        {
+            transform.position = randomPosition;
+        }
+    }
 
     void Start()
     {
-        Debug.Log("[PlayerTeleport] Start: Coroutine started");
         StartCoroutine(TeleportWhenGroundReady());
     }
 
     private IEnumerator TeleportWhenGroundReady()
     {
-        //Vector3 randomPosition = new(Random.Range(0, _terrain.WorldSize), 100f, Random.Range(0, _terrain.WorldSize));
-        //Debug.Log($"[PlayerTeleport] Trying position: {randomPosition}, rayLength: {rayLength}, groundLayer: {groundLayer}");
+        if (_terrain == null)
+        {
+            yield break;
+        }
+
         bool teleported = false;
 
         while (!teleported)
         {
             if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, rayLength, groundLayer))
             {
-                Debug.Log($"[PlayerTeleport] Raycast hit at {hit.point}");
                 Vector3 newPosition = hit.point;
                 newPosition.y += yOffset;
 
-                if (TryGetComponent<CharacterController>(out var controller))
+                if (TryGetComponent<CharacterController>(out var controller2))
                 {
-                    controller.enabled = false;
+                    controller2.enabled = false;
+
                     transform.position = newPosition;
-                    controller.enabled = true;
+
+                    controller2.enabled = true;
                 }
                 else
                 {
                     transform.position = newPosition;
                 }
 
-                Debug.Log($"[PlayerTeleport] Teleported to {newPosition}");
                 teleported = true;
+
+                if (_loadingScreen != null)
+                {
+                    yield return new WaitForSeconds(1f);
+                    _loadingScreen.SetActive(false);
+                }
             }
             else
             {
-                Debug.Log("[PlayerTeleport] Raycast did not hit ground. Retrying in 2 seconds.");
                 yield return new WaitForSeconds(0.1f);
             }
         }

@@ -229,7 +229,11 @@ namespace TerrainGenerator
             // Recreating top
 
             topObj.layer = layerId;
-            MeshCollider topMC = topObj.AddComponent<MeshCollider>();
+            if (!topObj.TryGetComponent<MeshCollider>(out var topMC))
+            {
+                topMC = topObj.AddComponent<MeshCollider>();
+            }
+            topMC.sharedMesh = topMF.mesh;
             yield return null;
         }
 
@@ -296,7 +300,7 @@ namespace TerrainGenerator
             
                         _chunkGenSemaphore.Wait();
             
-                        new System.Threading.Thread(() =>
+                        new Thread(() =>
                         {
                             try
                             {
@@ -751,7 +755,13 @@ namespace TerrainGenerator
                     topMF.mesh = GenerateMeshWithTwoMaterials(result.topField, new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize), result.dominantBiome0, result.dominantBiome1);
                 }
                 topObj.layer = layerId;
-                MeshCollider topMC = topObj.AddComponent<MeshCollider>();
+
+                if (!topObj.TryGetComponent<MeshCollider>(out var topMC))
+                {
+                    topMC = topObj.AddComponent<MeshCollider>();
+                }
+
+                topMC.sharedMesh = topMF.mesh;
                 foreach (var dir in directions)
                 {
                     Vector2Int neighborCoord = result.coord + dir;
@@ -910,7 +920,13 @@ namespace TerrainGenerator
                 topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * _chunkSize, 0, chunkCoord.y * _chunkSize), dominantBiome0, dominantBiome1);
             }
             topObj.layer = layerId;
-            MeshCollider topMC = topObj.AddComponent<MeshCollider>();
+
+            if (!topObj.TryGetComponent<MeshCollider>(out var topMC))
+            {
+                topMC = topObj.AddComponent<MeshCollider>();
+            }
+
+            topMC.sharedMesh = topMF.mesh;
             // Creating top layer
 
             foreach (var dir in directions)
