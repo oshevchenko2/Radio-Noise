@@ -542,9 +542,24 @@ namespace TerrainGenerator
         {
             int processed = 0;
 
-            var cameraPos = Camera.main != null ? Camera.main.transform.position : transform.position;
+            Camera[] cameras = Camera.allCameras;
 
-            Vector2 camXZ = new(cameraPos.x, cameraPos.z);
+            if (cameras == null || cameras.Length == 0)
+            {
+                cameras = new Camera[1] { null };
+            }
+
+            float MinDistanceToCameras(Vector3 chunkPos)
+            {
+                float minDist = float.MaxValue;
+                foreach (var cam in cameras)
+                {
+                    Vector3 camPos = cam != null ? cam.transform.position : transform.position;
+                    float dist = Vector2.Distance(new Vector2(chunkPos.x, chunkPos.z), new Vector2(camPos.x, camPos.z));
+                    if (dist < minDist) minDist = dist;
+                }
+                return minDist;
+            }
 
             var toGameObject = new List<Vector2Int>();
             var toInstance = new List<Vector2Int>();
@@ -552,9 +567,23 @@ namespace TerrainGenerator
             foreach (var kvp in _instancedChunks)
             {
                 Vector3 pos = kvp.Value.matrix.GetColumn(3);
-                float dist = Vector2.Distance(new Vector2(pos.x, pos.z), camXZ);
+                float dist = MinDistanceToCameras(pos);
                 if (dist < _instanceDistance * 0.8f)
                     toGameObject.Add(kvp.Key);
+            }
+
+            foreach (var kvp in _chunkObjects)
+            {
+                var go = kvp.Value;
+                if (go != null && go.activeSelf)
+                {
+                    Vector3 pos = go.transform.position;
+                    float dist = MinDistanceToCameras(pos);
+                    if (dist > _instanceDistance)
+                    {
+                        toInstance.Add(kvp.Key);
+                    }
+                }
             }
 
             foreach (var kvp in _chunkObjects)
@@ -563,10 +592,24 @@ namespace TerrainGenerator
                 if (go != null && !go.activeSelf)
                 {
                     Vector3 pos = go.transform.position;
-                    float dist = Vector2.Distance(new Vector2(pos.x, pos.z), camXZ);
+                    float dist = MinDistanceToCameras(pos);
                     if (dist < _instanceDistance * 0.8f)
                     {
                         go.SetActive(true);
+                    }
+                }
+            }
+
+            foreach (var kvp in _chunkObjects)
+            {
+                var go = kvp.Value;
+                if (go != null && go.activeSelf)
+                {
+                    Vector3 pos = go.transform.position;
+                    float dist = MinDistanceToCameras(pos);
+                    if (dist > _instanceDistance)
+                    {
+                        go.SetActive(false);
                     }
                 }
             }
@@ -658,7 +701,7 @@ namespace TerrainGenerator
 
                 Vector3 chunkPos = new(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize);
 
-                float dist = Vector2.Distance(new Vector2(chunkPos.x, chunkPos.z), camXZ);
+                float dist = MinDistanceToCameras(chunkPos);
 
                 if (dist > _instanceDistance)
                 {
@@ -1364,22 +1407,13 @@ namespace TerrainGenerator
 
                     Vector2 center = new(neighborChunk.x + 0.5f, neighborChunk.y + 0.5f);
                     float dist = Vector2.Distance(samplePos, center);
-                    // Distance from our point to this center
-                    float weight = Mathf.Clamp01(1f - dist);
-                    // then bound [0;1]. That is:
-                    // At the center of the chunk, weight≈1,
-                    // At the boundary (distance≥1) → weight=0,
-                    // In between - linearly decreasing.
-
+                    float weight = 1f / (dist * dist + 0.01f);
+                    // Inverse square distance weighting
+                     
                     BiomeType biome = _biomeMap[neighborChunk];
-
-                    if (weights.ContainsKey(biome))
-                        weights[biome] += weight;
-                    else
-                        weights[biome] = weight;
-
-                    // We add up the weights for the same biomes (here, neighboring chunks of the same type amplify its contribution).
-
+                    if (!weights.ContainsKey(biome))
+                        weights[biome] = 0f;
+                    weights[biome] += weight;
                     totalWeight += weight;
                     // Increase totalWeight at the same time
                 }

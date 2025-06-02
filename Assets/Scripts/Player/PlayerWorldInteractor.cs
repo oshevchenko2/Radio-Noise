@@ -122,33 +122,53 @@ namespace Player
             RemoveTriangle(mf.mesh, mc, hit.triangleIndex);
         }
 
-        void RemoveTriangle(Mesh mesh, MeshCollider meshCollider, int globalTriIndex)
+        void RemoveTriangle(Mesh mesh, MeshCollider meshCollider, int triangleIndex)
         {
-            int sub = FindSubMeshIndex(mesh, globalTriIndex);
-            // Determine in which submesh we have triangle
-            if (sub < 0) return;
-            // If not found - return
-            
-            var tris = new List<int>(mesh.GetTriangles(sub));
-            // Creating list of submesh triangle index
-            int before = 0;
-            for (int i = 0; i < sub; i++) before += mesh.GetTriangles(i).Length / 3;
-            // Count the total number of triangles in earlier submeshes
+            int subMesh = FindSubMeshIndex(mesh, triangleIndex);
+            if (subMesh < 0) return;
 
-            int local = globalTriIndex - before;
-            int idx = local * 3;
-            if (idx < 0 || idx + 2 >= tris.Count) return;
-            // Check that the index is in the valid range
+            int count = 0;
+            for (int i = 0; i < subMesh; i++)
+                count += mesh.GetTriangles(i).Length / 3;
+            int triLocalIdx = triangleIndex - count;
+
+            int[] tris = mesh.GetTriangles(subMesh);
+            if (triLocalIdx < 0 || triLocalIdx >= tris.Length / 3) return;
             
-            tris.RemoveRange(idx, 3);
-            // Removes 3 indexes(1 triangle)
+            int triStart = triLocalIdx * 3;
+            int triA = tris[triStart];
+            int triB = tris[triStart + 1];
+            int triC = tris[triStart + 2];
+
+            List<int> newTris = new(tris);
+            newTris.RemoveRange(triStart, 3);
+            mesh.SetTriangles(newTris, subMesh);
+
+            Vector3[] verts = mesh.vertices;
+            Vector3[] oldPositions = { verts[triA], verts[triB], verts[triC] };
             
-            mesh.SetTriangles(tris, sub);
+            verts[triA] += Vector3.down * 0.5f;
+            verts[triB] += Vector3.down * 0.5f;
+            verts[triC] += Vector3.down * 0.5f;
+
+            float epsilon = 0.001f;
+            for (int i = 0; i < verts.Length; i++)
+            {
+                for (int j = 0; j < oldPositions.Length; j++)
+                {
+                    if (Vector3.Distance(verts[i], oldPositions[j]) < epsilon)
+                    {
+                        verts[i] += Vector3.down * 0.5f;
+                    }
+                }
+            }
+
+            mesh.vertices = verts;
             mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
             
             meshCollider.sharedMesh = null;
             meshCollider.sharedMesh = mesh;
-            // Refresh collider and set mesh again
         }
 
         int FindSubMeshIndex(Mesh mesh, int triangleIndex)
