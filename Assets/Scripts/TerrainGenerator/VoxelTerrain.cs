@@ -5,13 +5,9 @@ using UnityEngine;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Burst;
-using UnityEngine.SearchService;
 using System.Collections;
 using Unity.Mathematics;
-using Unity.Entities.UniversalDelegates;
 using UnityEngine.SceneManagement;
-using System;
-using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Threading;
 
@@ -286,15 +282,13 @@ namespace TerrainGenerator
                     {
                         Vector2Int coord = new(x, z);
             
-                        if (_chunkObjects.ContainsKey(coord) || _generatingChunks.Contains(coord))
-                            continue;
+                        if (_chunkObjects.ContainsKey(coord) || _generatingChunks.Contains(coord)) continue;
             
                         Vector3 chunkWorldPos = new(x * _chunkSize + _chunkSize / 2f, 0, z * _chunkSize + _chunkSize / 2f);
             
                         float dist = Vector2.Distance(new Vector2(chunkWorldPos.x, chunkWorldPos.z), playerXZ);
             
-                        if (dist > chunkGenRadius)
-                            continue;
+                        if (dist > chunkGenRadius) continue;
             
                         _generatingChunks.Add(coord);
             
@@ -323,10 +317,12 @@ namespace TerrainGenerator
                                 _readyChunks.Enqueue(new ChunkGenResult
                                 {
                                     coord = coord,
+                                
                                     bottomField = bottomField,
                                     caveField = caveField,
                                     stoneField = stoneField,
                                     topField = topField,
+                                
                                     dominantBiome0 = dominantBiome0,
                                     dominantBiome1 = dominantBiome1
                                 });
@@ -369,8 +365,10 @@ namespace TerrainGenerator
             var biomeJob = new BiomeGenerationJob
             {
                 numChunks = numChunks,
+
                 seedX = _seedX,
                 seedZ = _seedZ,
+
                 biomeMap = new NativeArray<BiomeType>(numChunks * numChunks, Allocator.TempJob)
                 // I choose TempJob coz the array is only needed 4 the duration of the job and must be manually freed after the job is executed
             };
@@ -400,7 +398,6 @@ namespace TerrainGenerator
             public float seedX, seedZ;
             public NativeArray<BiomeType> biomeMap;
             // Output array where the calculated biome for each index is written.
-
             public void Execute(int index)
             {
                 int x = index / numChunks;
@@ -488,7 +485,7 @@ namespace TerrainGenerator
                 _generatingChunks.Add(coord);
                 _chunkGenSemaphore.Wait();
 
-                new System.Threading.Thread(() =>
+                new Thread(() =>
                 {
                     try
                     {
@@ -511,10 +508,12 @@ namespace TerrainGenerator
                         _readyChunks.Enqueue(new ChunkGenResult
                         {
                             coord = coord,
+
                             bottomField = bottomField,
                             caveField = caveField,
                             stoneField = stoneField,
                             topField = topField,
+
                             dominantBiome0 = dominantBiome0,
                             dominantBiome1 = dominantBiome1
                         });
@@ -524,7 +523,9 @@ namespace TerrainGenerator
                         _chunkGenSemaphore.Release();
                     }
                 }).Start();
+
                 countThisFrame++;
+
                 if (countThisFrame >= 30)
                 {
                     countThisFrame = 0;
@@ -532,6 +533,7 @@ namespace TerrainGenerator
                     yield return new WaitForSecondsRealtime(0.5f);
                 }
             }
+
             while (_generatingChunks.Count > 0)
             {
                 yield return null;
@@ -540,8 +542,6 @@ namespace TerrainGenerator
 
         private void LateUpdate()
         {
-            int processed = 0;
-
             Camera[] cameras = Camera.allCameras;
 
             if (cameras == null || cameras.Length == 0)
@@ -552,10 +552,13 @@ namespace TerrainGenerator
             float MinDistanceToCameras(Vector3 chunkPos)
             {
                 float minDist = float.MaxValue;
+
                 foreach (var cam in cameras)
                 {
                     Vector3 camPos = cam != null ? cam.transform.position : transform.position;
+                
                     float dist = Vector2.Distance(new Vector2(chunkPos.x, chunkPos.z), new Vector2(camPos.x, camPos.z));
+
                     if (dist < minDist) minDist = dist;
                 }
                 return minDist;
@@ -567,54 +570,41 @@ namespace TerrainGenerator
             foreach (var kvp in _instancedChunks)
             {
                 Vector3 pos = kvp.Value.matrix.GetColumn(3);
-                float dist = MinDistanceToCameras(pos);
-                if (dist < _instanceDistance * 0.8f)
-                    toGameObject.Add(kvp.Key);
+
+                if (MinDistanceToCameras(pos) < _instanceDistance * 0.8f) toGameObject.Add(kvp.Key);
+            
             }
 
             foreach (var kvp in _chunkObjects)
             {
                 var go = kvp.Value;
-                if (go != null && go.activeSelf)
+
+                if (go != null && go.activeSelf && MinDistanceToCameras(go.transform.position) > _instanceDistance)
                 {
-                    Vector3 pos = go.transform.position;
-                    float dist = MinDistanceToCameras(pos);
-                    if (dist > _instanceDistance)
-                    {
-                        toInstance.Add(kvp.Key);
-                    }
+                    toInstance.Add(kvp.Key);
                 }
             }
 
             foreach (var kvp in _chunkObjects)
             {
                 var go = kvp.Value;
-                if (go != null && !go.activeSelf)
-                {
-                    Vector3 pos = go.transform.position;
-                    float dist = MinDistanceToCameras(pos);
-                    if (dist < _instanceDistance * 0.8f)
-                    {
-                        go.SetActive(true);
-                    }
-                }
-            }
+            
+                if (go == null) continue;
+            
+                float dist = MinDistanceToCameras(go.transform.position);
 
-            foreach (var kvp in _chunkObjects)
-            {
-                var go = kvp.Value;
-                if (go != null && go.activeSelf)
+                if (go.activeSelf && dist > _instanceDistance)
                 {
-                    Vector3 pos = go.transform.position;
-                    float dist = MinDistanceToCameras(pos);
-                    if (dist > _instanceDistance)
-                    {
-                        go.SetActive(false);
-                    }
+                    go.SetActive(false);
+                }
+                else if (!go.activeSelf && dist < _instanceDistance * 0.8f)
+                {
+                    go.SetActive(true);
                 }
             }
 
             int processedToGameObject = 0;
+
             foreach (var coord in toGameObject)
             {
                 if (_instancedChunks.TryGetValue(coord, out var data))
@@ -623,12 +613,16 @@ namespace TerrainGenerator
                     {
                         oldGo.SetActive(true);
                         oldGo.transform.position = data.matrix.GetColumn(3);
+
                         _instancedChunks.Remove(coord);
+
                         processedToGameObject++;
+
                         if (processedToGameObject >= 1) break;
                         continue;
                     }
                     if (_chunkObjects.ContainsKey(coord)) continue;
+
                     if (_modifiedChunks.TryGetValue(coord, out var chunkData))
                     {
                         StartCoroutine(RecreateChunk(coord, chunkData));
@@ -637,35 +631,29 @@ namespace TerrainGenerator
                     {
                         GameObject go = new($"Chunk_{coord.x}_{coord.y}");
                         go.transform.position = data.matrix.GetColumn(3);
+
                         var mf = go.AddComponent<MeshFilter>();
                         mf.mesh = data.mesh;
+
                         var mr = go.AddComponent<MeshRenderer>();
                         mr.material = data.material;
+
                         _chunkObjects[coord] = go;
                     }
+
                     _instancedChunks.Remove(coord);
+
                     processedToGameObject++;
                     if (processedToGameObject >= 1) break;
-                }
-                else if (_chunkObjects.ContainsKey(coord)) {
-                    var go = _chunkObjects[coord];
-                    if (go != null && !go.activeSelf) {
-                        go.SetActive(true);
-                        go.transform.position = data.matrix.GetColumn(3);
-                    }
-                    _instancedChunks.Remove(coord);
-                    processedToGameObject++;
-                    if (processedToGameObject >= 1) break;
-                    continue;
                 }
             }
-
             foreach (var coord in toInstance)
             {
                 if (_chunkObjects.TryGetValue(coord, out var go))
                 {
                     var mf = go.GetComponent<MeshFilter>();
                     var mr = go.GetComponent<MeshRenderer>();
+
                     if (mf != null && mr != null)
                     {
                         var data = new InstancedChunkData
@@ -674,75 +662,68 @@ namespace TerrainGenerator
                             material = mr.material,
                             matrix = Matrix4x4.TRS(go.transform.position, Quaternion.identity, Vector3.one)
                         };
+                    
                         _instancedChunks[coord] = data;
                     }
+
                     go.SetActive(false);
-                    // _chunkObjects.Remove(coord)
                 }
             }
-            
+
+            int processed = 0;
+
             while (_readyChunks.TryDequeue(out var result))
             {
                 if (_chunkObjects.ContainsKey(result.coord) || _instancedChunks.ContainsKey(result.coord))
                 {
                     _generatingChunks.Remove(result.coord);
+            
                     continue;
                 }
-
+            
                 if (_modifiedChunks.TryGetValue(result.coord, out var chunkData))
                 {
                     StartCoroutine(RecreateChunk(result.coord, chunkData));
                     _generatingChunks.Remove(result.coord);
+            
                     continue;
                 }
 
-                float centerX = result.coord.x * _chunkSize + _chunkSize / 2f;
-                float centerZ = result.coord.y * _chunkSize + _chunkSize / 2f;
-
-                Vector3 chunkPos = new(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize);
-
-                float dist = MinDistanceToCameras(chunkPos);
+                float dist = MinDistanceToCameras(new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize));
 
                 if (dist > _instanceDistance)
                 {
                     Mesh mesh = GenerateMesh(result.topField);
-
                     Material mat = GetMaterialForBiome(result.dominantBiome0);
-
+                
                     var data = new InstancedChunkData
                     {
                         mesh = mesh,
                         material = mat,
-                        matrix = Matrix4x4.TRS(chunkPos, Quaternion.identity, Vector3.one)
+                        matrix = Matrix4x4.TRS(new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize), Quaternion.identity, Vector3.one)
                     };
-
+                
                     _instancedChunks[result.coord] = data;
                     _generatingChunks.Remove(result.coord);
-
+                
                     continue;
                 }
 
-                Vector2Int[] directions = new Vector2Int[]
-                {
-                    Vector2Int.left,
-                    Vector2Int.right,
-                    Vector2Int.up,
-                    Vector2Int.down
-                };
+                Vector2Int[] directions = new Vector2Int[] { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down };
 
                 int layerId = LayerMask.NameToLayer("Chunk");
-
                 GameObject chunkObject = new($"Chunk_{result.coord.x}_{result.coord.y}");
-
-                chunkObject.transform.position = chunkPos;
+                chunkObject.transform.position = new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize);
                 _chunkObjects[result.coord] = chunkObject;
 
                 foreach (var dir in directions)
                 {
                     Vector2Int neighborCoord = result.coord + dir;
+                
                     if (_chunkWalls.TryGetValue(neighborCoord, out var walls))
                     {
                         Vector2Int oppositeDir = -dir;
+                
                         if (walls.TryGetValue(oppositeDir, out var wall))
                         {
                             GameObject.Destroy(wall);
@@ -751,6 +732,7 @@ namespace TerrainGenerator
                     }
                 }
 
+                // Bottom
                 GameObject bottomObj = new("BottomLayer");
                 bottomObj.transform.parent = chunkObject.transform;
                 bottomObj.transform.localPosition = Vector3.zero;
@@ -760,6 +742,7 @@ namespace TerrainGenerator
                 bottomMF.mesh = GenerateMesh(result.bottomField);
                 MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
 
+                // Cave
                 GameObject caveObj = new("CaveLayer");
                 caveObj.transform.parent = chunkObject.transform;
                 caveObj.transform.localPosition = Vector3.zero;
@@ -770,6 +753,7 @@ namespace TerrainGenerator
                 MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
                 caveObj.layer = layerId;
 
+                // Stone
                 GameObject stoneObj = new("StoneLayer");
                 stoneObj.transform.parent = chunkObject.transform;
                 stoneObj.transform.localPosition = Vector3.zero;
@@ -780,16 +764,19 @@ namespace TerrainGenerator
                 var stoneMC = stoneObj.AddComponent<MeshCollider>();
                 stoneObj.layer = layerId;
 
+                // Top
                 GameObject topObj = new("TopLayer");
                 topObj.transform.parent = chunkObject.transform;
                 topObj.transform.localPosition = Vector3.zero;
                 MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
                 MeshFilter topMF = topObj.AddComponent<MeshFilter>();
+
                 if (result.dominantBiome0 == result.dominantBiome1)
                 {
                     topRend.material = GetMaterialForBiome(result.dominantBiome0);
                     topMF.mesh = GenerateConnectedTopMesh(result.topField);
                 }
+
                 else
                 {
                     Material mat0 = GetMaterialForBiome(result.dominantBiome0);
@@ -797,24 +784,29 @@ namespace TerrainGenerator
                     topRend.materials = new Material[] { mat0, mat1 };
                     topMF.mesh = GenerateMeshWithTwoMaterials(result.topField, new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize), result.dominantBiome0, result.dominantBiome1);
                 }
+
                 topObj.layer = layerId;
 
                 if (!topObj.TryGetComponent<MeshCollider>(out var topMC))
                 {
                     topMC = topObj.AddComponent<MeshCollider>();
                 }
-
                 topMC.sharedMesh = topMF.mesh;
+
                 foreach (var dir in directions)
                 {
                     Vector2Int neighborCoord = result.coord + dir;
+
                     if (!_chunkObjects.ContainsKey(neighborCoord))
                     {
                         CreateChunkWall(result.coord, dir, chunkObject);
                     }
                 }
+
                 _generatingChunks.Remove(result.coord);
+
                 processed++;
+
                 if (processed >= MaxChunksPerFrame) break;
             }
         }
@@ -824,6 +816,7 @@ namespace TerrainGenerator
             foreach (var kvp in _instancedChunks)
             {
                 var data = kvp.Value;
+
                 if (data.mesh != null && data.material != null)
                 {
                     Graphics.DrawMeshInstanced(data.mesh, 0, data.material, new[] { data.matrix });
@@ -831,12 +824,6 @@ namespace TerrainGenerator
             }
         }
 
-        private class InstancedChunkData
-        {
-            public Mesh mesh;
-            public Material material;
-            public Matrix4x4 matrix;
-        }
         private Dictionary<Vector2Int, InstancedChunkData> _instancedChunks = new();
         private float _instanceDistance = 128f;
 
@@ -847,141 +834,6 @@ namespace TerrainGenerator
             _modifiedChunks[coord] = data;
         }
 
-        void GenerateChunk(Vector2Int chunkCoord)
-        {
-            float centerX = chunkCoord.x * _chunkSize + _chunkSize / 2f;
-            float centerZ = chunkCoord.y * _chunkSize + _chunkSize / 2f;
-            // World coordinates of the center of the chunk, needed 2 estimate which biomes “predominate” in the middle of the block.
-
-            Dictionary<BiomeType, float> weights = SampleBiomeWeights(centerX, centerZ);
-            var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
-            // Sort by descending weight and select the two largest values:
-            BiomeType dominantBiome0 = sortedWeights[0].Key; // the main biome
-            BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0; // the second “strongest” (or the same if only one)
-
-            GenerateDensityField(chunkCoord,
-                            out float[,,] bottomField,
-                            out float[,,] caveField,
-                            out float[,,] stoneField,
-                            out float[,,] topField,
-                            _chunkHeight);
-
-            GameObject chunkObject = new($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
-            // A GameObject of a chunk with a readable name is created
-            chunkObject.transform.position = new Vector3(chunkCoord.x * _chunkSize, 0, chunkCoord.y * _chunkSize);
-            // Puts it in the world on a grid: chunk coordinates x chunk size.
-
-            Vector2Int[] directions = new Vector2Int[]
-            {
-                Vector2Int.left,
-                Vector2Int.right,
-                Vector2Int.up,
-                Vector2Int.down
-            };
-
-            int layerId = LayerMask.NameToLayer("Chunk");
-            _chunkObjects[chunkCoord] = chunkObject;
-
-            foreach (var dir in directions)
-            {
-                Vector2Int neighborCoord = chunkCoord + dir;
-                if (_chunkWalls.TryGetValue(neighborCoord, out var walls))
-                {
-                    Vector2Int oppositeDir = -dir;
-                    if (walls.TryGetValue(oppositeDir, out var wall))
-                    {
-                        GameObject.Destroy(wall);
-                        walls.Remove(oppositeDir);
-                    }
-                }
-            }
-            // Saves the reference to a dictionary so that I can quickly find and overwrite this chunk later on
-
-            // If creating new layer, use:
-            // GameObject layerNameObj = new("LayerName"); // Making container for layerNameObj with readable name
-            // layerNameObj.transform.parent = chunkObject.transform; // Bind 2 the root of the chunk
-            // layerNameObj.transform.localPosition = Vector3.zero; // and zero-shift it inside
-            // MeshRenderer layerNameRend = layerNameObj.AddComponent<MeshRenderer>();
-            // layerNameRend.material = layerNameMaterial;
-            // MeshFilter layerNameMF = layerNameObj.AddComponent<MeshFilter>();
-            // MeshCollider layerNameMC = layerNameObj.AddComponent<MeshCollider>();
-            // layerNameMF.mesh = GenerateMesh(layerNameMesh); // Onverting data saved in ChunkData.cs 2 Mesh
-            // !!! DON'T FORGET TO PUT THIS IN RecreateChunk ENUMERATOR
-
-            GameObject bottomObj = new("BottomLayer");
-            bottomObj.transform.parent = chunkObject.transform;
-            bottomObj.transform.localPosition = Vector3.zero;
-            MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
-            bottomRend.material = _stoneMaterial;
-            MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
-            bottomMF.mesh = GenerateMesh(bottomField);
-            MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
-            // Creating bot layer
-
-            GameObject caveObj = new("CaveLayer");
-            caveObj.transform.parent = chunkObject.transform;
-            caveObj.transform.localPosition = Vector3.zero;
-            MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
-            caveRend.material = _stoneMaterial;
-            MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
-            caveMF.mesh = GenerateMesh(caveField);
-            MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
-            caveObj.layer = layerId;
-            // Creating cave
-
-            GameObject stoneObj = new("StoneLayer");
-            stoneObj.transform.parent = chunkObject.transform;
-            stoneObj.transform.localPosition = Vector3.zero;
-            var stoneRend = stoneObj.AddComponent<MeshRenderer>();
-            stoneRend.material = _stoneMaterial;
-            var stoneMF = stoneObj.AddComponent<MeshFilter>();
-            stoneMF.mesh = GenerateMesh(stoneField);
-            var stoneMC = stoneObj.AddComponent<MeshCollider>();
-            stoneObj.layer = layerId;
-            // Creating Top Stone
-
-            GameObject topObj = new("TopLayer");
-            topObj.transform.parent = chunkObject.transform;
-            topObj.transform.localPosition = Vector3.zero;
-            MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
-            MeshFilter topMF = topObj.AddComponent<MeshFilter>();
-
-            // Top layer is little bit different
-            // But..
-            // If the biome is single, we assign one material and weld close vertices 2 remove artifacts
-            if (dominantBiome0 == dominantBiome1)
-            {
-                topRend.material = GetMaterialForBiome(dominantBiome0);
-                topMF.mesh = GenerateConnectedTopMesh(topField);
-            }
-            else
-            // If the biome is mixed, we assign two materials (two-subset mesh) and use “raw” data.
-            {
-                Material mat0 = GetMaterialForBiome(dominantBiome0);
-                Material mat1 = GetMaterialForBiome(dominantBiome1);
-                topRend.materials = new Material[] { mat0, mat1 };
-                topMF.mesh = GenerateMeshWithTwoMaterials(topField, new Vector3(chunkCoord.x * _chunkSize, 0, chunkCoord.y * _chunkSize), dominantBiome0, dominantBiome1);
-            }
-            topObj.layer = layerId;
-
-            if (!topObj.TryGetComponent<MeshCollider>(out var topMC))
-            {
-                topMC = topObj.AddComponent<MeshCollider>();
-            }
-
-            topMC.sharedMesh = topMF.mesh;
-            // Creating top layer
-
-            foreach (var dir in directions)
-            {
-                Vector2Int neighborCoord = chunkCoord + dir;
-                if (!_chunkObjects.ContainsKey(neighborCoord))
-                {
-                    CreateChunkWall(chunkCoord, dir, chunkObject);
-                }
-            }
-        }
-
         void GenerateDensityField(Vector2Int chunkCoord,
                                     out float[,,] bottomField,
                                     out float[,,] caveField,
@@ -989,11 +841,13 @@ namespace TerrainGenerator
                                     out float[,,] topField,
                                     int chunkHeight)
         {
+
             int size = _chunkSize + 1;
             // Alas, to avoid the error in Unity, you need to consider one more point on each axis than the number of cubes
             // Due to a peculiarity of the Marching Cubes method.
             // Well, in order not to forget accidentally or not to calculate, thus losing nerves and time 2 debug this error, 
             // I'd rather spend 4 bytes, not such a loss.
+
             bottomField = new float[size, _chunkHeight + 1, size];
             caveField = new float[size, _chunkHeight + 1, size];
             stoneField = new float[size, _chunkHeight + 1, size];
@@ -1312,9 +1166,11 @@ namespace TerrainGenerator
             for (int i = 0; MarchingCubesTables.TriTable[cubeIndex, i] != -1; i += 3)
             {
                 int vi = vertices.Count;
+            
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i]]);
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 1]]);
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 2]]);
+            
                 triangles.Add(vi);
                 triangles.Add(vi + 1);
                 triangles.Add(vi + 2);
@@ -1610,16 +1466,5 @@ namespace TerrainGenerator
             return WeldCloseVertices(raw, threshold: 0.01f);
             // Then we connect vertices that are closer than 0.01 units to each other
         }
-    }
-
-    class ChunkGenResult
-    {
-        public Vector2Int coord;
-        public float[,,] bottomField;
-        public float[,,] caveField;
-        public float[,,] stoneField;
-        public float[,,] topField;
-        public BiomeType dominantBiome0;
-        public BiomeType dominantBiome1;
     }
 }
