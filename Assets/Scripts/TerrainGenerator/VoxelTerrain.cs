@@ -343,7 +343,7 @@ namespace TerrainGenerator
         {
             if (Input.GetKeyDown(KeyCode.F6))
             {
-                SceneManager.LoadSceneAsync(0);
+                SceneManager.LoadSceneAsync(1);
             }
         }
 
