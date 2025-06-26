@@ -417,10 +417,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00ddfac74b61a374eb282b57e90a188e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _timeOfDay: 12
-  _dayDurationInMinutes: 24
   _mainLight: {fileID: 157207113}
   _skyVolume: {fileID: 432432460}
+  _timeOfDay: 12
+  _dayDurationInMinutes: 24
   _maxSunIntensity: 130000
   _minMoonIntensity: 2
   _sunCurve:
@@ -2227,6 +2227,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 698482598694048250, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
+      propertyPath: _terrain
+      value: 
+      objectReference: {fileID: 1310858873}
+    - target: {fileID: 698482598694048250, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
+      propertyPath: _loadingScreen
+      value: 
+      objectReference: {fileID: 2093039412}
     - target: {fileID: 3210487452195438290, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
       propertyPath: m_Name
       value: Player
@@ -2235,18 +2243,6 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 1070446332
       objectReference: {fileID: 0}
-    - target: {fileID: 7475553813155582695, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8444171722546419593, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
-      propertyPath: _terrain
-      value: 
-      objectReference: {fileID: 1310858873}
-    - target: {fileID: 8444171722546419593, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
-      propertyPath: _loadingScreen
-      value: 
-      objectReference: {fileID: 2093039412}
     - target: {fileID: 8545975335766846796, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
       propertyPath: m_LocalPosition.x
       value: 177.9
