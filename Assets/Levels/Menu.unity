@@ -3627,7 +3627,6 @@ GameObject:
   - component: {fileID: 318282689}
   - component: {fileID: 318282688}
   - component: {fileID: 318282690}
-  - component: {fileID: 318282691}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -3908,14 +3907,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &318282691
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 318282686}
-  m_Mesh: {fileID: 2000924869}
 --- !u!1 &352028271
 GameObject:
   m_ObjectHideFlags: 0
@@ -6091,7 +6082,6 @@ GameObject:
   - component: {fileID: 538144639}
   - component: {fileID: 538144638}
   - component: {fileID: 538144640}
-  - component: {fileID: 538144641}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -6372,14 +6362,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &538144641
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 538144636}
-  m_Mesh: {fileID: 1413821095}
 --- !u!43 &547431646
 Mesh:
   m_ObjectHideFlags: 0
@@ -8948,7 +8930,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 638062862}
-  - component: {fileID: 638062861}
   m_Layer: 0
   m_Name: MultiplayerManager
   m_TagString: Untagged
@@ -8956,18 +8937,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &638062861
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 638062860}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b716980ebb1de740868513de0b7312f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &638062862
 Transform:
   m_ObjectHideFlags: 0
@@ -10321,7 +10290,6 @@ GameObject:
   - component: {fileID: 699103611}
   - component: {fileID: 699103610}
   - component: {fileID: 699103612}
-  - component: {fileID: 699103613}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -10602,14 +10570,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &699103613
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 699103608}
-  m_Mesh: {fileID: 1681213107}
 --- !u!43 &702927948
 Mesh:
   m_ObjectHideFlags: 0
@@ -10943,7 +10903,6 @@ GameObject:
   - component: {fileID: 722300165}
   - component: {fileID: 722300164}
   - component: {fileID: 722300166}
-  - component: {fileID: 722300167}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -11224,14 +11183,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &722300167
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 722300162}
-  m_Mesh: {fileID: 2147407335}
 --- !u!1 &727109066
 GameObject:
   m_ObjectHideFlags: 0
@@ -11290,7 +11241,6 @@ GameObject:
   - component: {fileID: 735011064}
   - component: {fileID: 735011063}
   - component: {fileID: 735011065}
-  - component: {fileID: 735011066}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -11571,14 +11521,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &735011066
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 735011061}
-  m_Mesh: {fileID: 1642016803}
 --- !u!43 &753036613
 Mesh:
   m_ObjectHideFlags: 0
@@ -12660,7 +12602,6 @@ GameObject:
   - component: {fileID: 824935440}
   - component: {fileID: 824935439}
   - component: {fileID: 824935441}
-  - component: {fileID: 824935442}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -12941,14 +12882,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &824935442
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 824935437}
-  m_Mesh: {fileID: 212755582}
 --- !u!1 &843352912
 GameObject:
   m_ObjectHideFlags: 0
@@ -14245,7 +14178,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 638062861}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: NetworkWorldStart, Assembly-CSharp
         m_MethodName: StartClient
         m_Mode: 1
@@ -17583,7 +17516,6 @@ GameObject:
   - component: {fileID: 938497152}
   - component: {fileID: 938497151}
   - component: {fileID: 938497153}
-  - component: {fileID: 938497154}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -18049,14 +17981,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &938497154
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 938497149}
-  m_Mesh: {fileID: 936461391}
 --- !u!1 &940682058
 GameObject:
   m_ObjectHideFlags: 0
@@ -18999,7 +18923,6 @@ GameObject:
   - component: {fileID: 956443588}
   - component: {fileID: 956443587}
   - component: {fileID: 956443589}
-  - component: {fileID: 956443590}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -19280,14 +19203,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &956443590
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 956443585}
-  m_Mesh: {fileID: 794177424}
 --- !u!1 &960366416
 GameObject:
   m_ObjectHideFlags: 0
@@ -20641,7 +20556,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 638062861}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: NetworkWorldStart, Assembly-CSharp
         m_MethodName: StartHost
         m_Mode: 1
@@ -22855,7 +22770,6 @@ GameObject:
   - component: {fileID: 1172477187}
   - component: {fileID: 1172477186}
   - component: {fileID: 1172477188}
-  - component: {fileID: 1172477189}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -23358,14 +23272,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &1172477189
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1172477184}
-  m_Mesh: {fileID: 255143657}
 --- !u!1 &1211532612
 GameObject:
   m_ObjectHideFlags: 0
@@ -23378,7 +23284,6 @@ GameObject:
   - component: {fileID: 1211532615}
   - component: {fileID: 1211532614}
   - component: {fileID: 1211532616}
-  - component: {fileID: 1211532617}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -23659,14 +23564,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &1211532617
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1211532612}
-  m_Mesh: {fileID: 1620316417}
 --- !u!1 &1232568212
 GameObject:
   m_ObjectHideFlags: 0
@@ -23679,7 +23576,6 @@ GameObject:
   - component: {fileID: 1232568215}
   - component: {fileID: 1232568214}
   - component: {fileID: 1232568216}
-  - component: {fileID: 1232568217}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -24108,14 +24004,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &1232568217
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1232568212}
-  m_Mesh: {fileID: 493879225}
 --- !u!1 &1240393620
 GameObject:
   m_ObjectHideFlags: 0
@@ -25948,7 +25836,6 @@ GameObject:
   - component: {fileID: 1299550518}
   - component: {fileID: 1299550517}
   - component: {fileID: 1299550519}
-  - component: {fileID: 1299550520}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -26229,14 +26116,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &1299550520
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1299550515}
-  m_Mesh: {fileID: 1002787028}
 --- !u!1 &1304792939
 GameObject:
   m_ObjectHideFlags: 0
@@ -30308,7 +30187,6 @@ GameObject:
   - component: {fileID: 1438540008}
   - component: {fileID: 1438540007}
   - component: {fileID: 1438540009}
-  - component: {fileID: 1438540010}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -30589,14 +30467,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &1438540010
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1438540005}
-  m_Mesh: {fileID: 1962669792}
 --- !u!1 &1449483739
 GameObject:
   m_ObjectHideFlags: 0
@@ -33108,7 +32978,6 @@ GameObject:
   - component: {fileID: 1627589721}
   - component: {fileID: 1627589720}
   - component: {fileID: 1627589722}
-  - component: {fileID: 1627589723}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -33500,14 +33369,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &1627589723
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1627589718}
-  m_Mesh: {fileID: 660722634}
 --- !u!43 &1637416398
 Mesh:
   m_ObjectHideFlags: 0
@@ -35677,7 +35538,6 @@ GameObject:
   - component: {fileID: 1802137078}
   - component: {fileID: 1802137077}
   - component: {fileID: 1802137079}
-  - component: {fileID: 1802137080}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -35958,14 +35818,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &1802137080
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1802137075}
-  m_Mesh: {fileID: 766412795}
 --- !u!43 &1814388399
 Mesh:
   m_ObjectHideFlags: 0
@@ -36777,7 +36629,6 @@ GameObject:
   - component: {fileID: 1879800646}
   - component: {fileID: 1879800645}
   - component: {fileID: 1879800647}
-  - component: {fileID: 1879800648}
   m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -37058,14 +36909,6 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
---- !u!33 &1879800648
-MeshFilter:
-  m_ObjectHideFlags: 10
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1879800643}
-  m_Mesh: {fileID: 2142980643}
 --- !u!1 &1933844739
 GameObject:
   m_ObjectHideFlags: 0
