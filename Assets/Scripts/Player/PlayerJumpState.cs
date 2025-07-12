@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Movement;
 
 namespace Player
@@ -12,9 +13,19 @@ namespace Player
         private Vector3 startSpeed;
         private Vector3 velocity;
 
+        private InputAction _moveAction;
+
         public PlayerJumpState(PlayerMovementStateMachine stateMachine, Vector3 StartSpeed) : base(stateMachine) 
         {
             startSpeed = StartSpeed;
+
+            _moveAction = new InputAction(type: InputActionType.Value, binding: "<Gamepad>/leftStick");
+            _moveAction.AddCompositeBinding("2DVector")
+                .With("Up", "<Keyboard>/w")
+                .With("Down", "<Keyboard>/s")
+                .With("Left", "<Keyboard>/a")
+                .With("Right", "<Keyboard>/d");
+            _moveAction.Enable();
         }
 
         public override void Enter()
@@ -25,17 +36,31 @@ namespace Player
 
         public override void Update()
         {
-            float horizontal = Input.GetAxisRaw("Horizontal");
-            float vertical = Input.GetAxisRaw("Vertical");
-
-            Vector3 moveDirection = (stateMachine.transform.right * horizontal + stateMachine.transform.forward * vertical).normalized * _currentMovementSpeed;
-            velocity.y += -_gravity * Time.deltaTime;
-            _controller.Move((velocity + moveDirection + startSpeed) * Time.deltaTime);
+            if (!IsOwner) return;
             
-            if(Physics.Raycast(origin:stateMachine.transform.position, direction:Vector3.down, maxDistance: stateMachine.transform.localScale.y + 0.1f) && velocity.y <= 0)
+            Vector2 input = _moveAction.ReadValue<Vector2>();
+
+            Vector3 moveDirection = 
+                (stateMachine.transform.right * input.x + stateMachine.transform.forward * input.y).normalized 
+                * _currentMovementSpeed;
+
+            velocity.y += -_gravity * Time.deltaTime;
+
+            _controller.Move((velocity + moveDirection + startSpeed) * Time.deltaTime);
+
+            if (Physics.Raycast(
+                origin: stateMachine.transform.position, 
+                direction: Vector3.down, 
+                maxDistance: stateMachine.transform.localScale.y + 0.1f) 
+                && velocity.y <= 0)
             {
                 stateMachine.Begin(new PlayerGroundedState(stateMachine));
             }
+        }
+
+        public override void Exit()
+        {
+            _moveAction.Disable();
         }
     }
 }

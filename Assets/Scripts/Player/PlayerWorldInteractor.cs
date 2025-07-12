@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Player
 {
@@ -24,10 +25,37 @@ namespace Player
 
         [SerializeField] Dictionary<Type, GameObjectInstance> _shapeMeshes = new();
 
+        [SerializeField] private InputActionReference switchShapeAction;
+        [SerializeField] private InputActionReference addVolumeAction;
+        [SerializeField] private InputActionReference removeVolumeAction;
+
+        private Vector2 mousePosition => Mouse.current.position.ReadValue();
+
+
         private float lastCheckObjectInstance = 0;
 
         private Camera _cam;
         private int _chunkLayerIndex;
+
+        void OnEnable()
+        {
+            if (switchShapeAction != null && switchShapeAction.action != null)
+                switchShapeAction.action.Enable();
+            if (addVolumeAction != null && addVolumeAction.action != null)
+                addVolumeAction.action.Enable();
+            if (removeVolumeAction != null && removeVolumeAction.action != null)
+                removeVolumeAction.action.Enable();
+        }
+
+        void OnDisable()
+        {
+            if (switchShapeAction != null && switchShapeAction.action != null)
+                switchShapeAction.action.Disable();
+            if (addVolumeAction != null && addVolumeAction.action != null)
+                addVolumeAction.action.Disable();
+            if (removeVolumeAction != null && removeVolumeAction.action != null)
+                removeVolumeAction.action.Disable();
+        }
 
         void Start()
         {
@@ -45,26 +73,29 @@ namespace Player
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Tab))
+            if (switchShapeAction != null && switchShapeAction.action != null && switchShapeAction.action.WasPressedThisFrame())
                 _shape = (ShapeType)(((int)_shape + 1) % Enum.GetValues(typeof(ShapeType)).Length);
-            // Switch shape type
-        
-            if (Input.GetMouseButtonDown(0)) RemoveTriangle();
-        
-            if (Input.GetMouseButtonDown(1)) AddVolume();
 
-            if(Time.time - lastCheckObjectInstance > 3){
+            if (removeVolumeAction != null && removeVolumeAction.action != null && removeVolumeAction.action.WasPressedThisFrame())
+                RemoveTriangle();
+
+            if (addVolumeAction != null && addVolumeAction.action != null && addVolumeAction.action.WasPressedThisFrame())
+                AddVolume();
+
+            if (Time.time - lastCheckObjectInstance > 3)
+            {
                 lastCheckObjectInstance = Time.time;
 
-                for(int i = 0; i < Shape.List.Count; i++)
+                for (int i = 0; i < Shape.List.Count; i++)
                 {
-                    if(Shape.IsNear(i, transform.position)){
+                    if (Shape.IsNear(i, transform.position))
+                    {
                         GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].Position, Quaternion.identity);
                         Shape.List[i].IsSpawned = true;
                         go.Camera = transform;
                         go.Index = i;
                     }
-                } 
+                }
             }
 
             // Cubes
@@ -94,7 +125,7 @@ namespace Player
 
         void RemoveTriangle()
         {
-            var ray = _cam.ScreenPointToRay(Input.mousePosition);
+            var ray = _cam.ScreenPointToRay(mousePosition);
             if (!Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer))
                 return;
 
@@ -185,7 +216,7 @@ namespace Player
         
         void AddVolume()
         {
-            Ray ray = _cam.ScreenPointToRay(Input.mousePosition);
+            Ray ray = _cam.ScreenPointToRay(mousePosition);
             if (!Physics.Raycast(ray, out RaycastHit hit, _reachDistance, _chunkLayer)) return;
 
             float cellSize = _shapeSize;

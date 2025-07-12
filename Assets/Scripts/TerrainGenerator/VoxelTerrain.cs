@@ -341,10 +341,10 @@ namespace TerrainGenerator
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F6))
+            /*if (Input.GetKeyDown(KeyCode.F6))
             {
                 SceneManager.LoadSceneAsync(1);
-            }
+            }*/
         }
 
         void InitializeMeshPool()

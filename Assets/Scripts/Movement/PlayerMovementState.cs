@@ -1,5 +1,3 @@
-using UnityEditor;
-using System.Collections.Generic;
 using System;
 
 namespace Movement
@@ -13,6 +11,8 @@ namespace Movement
         {
             this.stateMachine = stateMachine;
         }
+
+        protected bool IsOwner => stateMachine.IsOwner;
 
         public virtual void Enter() { }
         public virtual void Update() { }

@@ -19,6 +19,8 @@ GameObject:
   - component: {fileID: 264407954611876039}
   - component: {fileID: 5329242550558330631}
   - component: {fileID: -8841479542484923347}
+  - component: {fileID: 3911201801334658436}
+  - component: {fileID: 1617891146897931688}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -77,6 +79,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e84bd72fa655c54788421fdc9cf7f28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 0
+  _addedNetworkObject: {fileID: 5329242550558330631}
+  _networkObjectCache: {fileID: 5329242550558330631}
   _stack:
     _stack: []
 --- !u!114 &8956037590112614809
@@ -91,6 +96,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 244527d3efaeac2499656aeda933baf3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 1
+  _addedNetworkObject: {fileID: 5329242550558330631}
+  _networkObjectCache: {fileID: 5329242550558330631}
   _stack:
     _stack: []
 --- !u!143 &1486556690966508148
@@ -149,8 +157,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52348d0cb5ccccf43b1744d485e8838d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 2
+  _addedNetworkObject: {fileID: 5329242550558330631}
+  _networkObjectCache: {fileID: 5329242550558330631}
   MouseSensitivity: 2
   MaxLookAngle: 85
+  cameraHolder: {fileID: 3354640017447761075}
 --- !u!33 &4190079083358474589
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -223,6 +235,9 @@ MonoBehaviour:
   <PredictedSpawn>k__BackingField: {fileID: 0}
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
+  - {fileID: 5475771938992727219}
+  - {fileID: 8956037590112614809}
+  - {fileID: 301427650546940538}
   - {fileID: -8841479542484923347}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
@@ -236,8 +251,8 @@ MonoBehaviour:
   _defaultDespawnType: 1
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
-  _predictionType: 0
-  _graphicalObject: {fileID: 0}
+  _predictionType: 1
+  _graphicalObject: {fileID: 1010943544318972599}
   _detachGraphicalObject: 0
   _enableStateForwarding: 1
   _networkTransform: {fileID: 0}
@@ -269,9 +284,64 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a6a39c46bf52104ba8efe3100bce3f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 0
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 5329242550558330631}
   _networkObjectCache: {fileID: 5329242550558330631}
+--- !u!1652712579 &3911201801334658436
+MultiplayerRolesData:
+  m_ObjectHideFlags: 2
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4583041443411801923}
+  m_GameObjectRolesMask: 3
+  m_ComponentsRolesMasks:
+  - m_Object: {fileID: 5475771938992727219}
+    m_RolesMask: 1
+  - m_Object: {fileID: 8956037590112614809}
+    m_RolesMask: 1
+  - m_Object: {fileID: 1486556690966508148}
+    m_RolesMask: 1
+  - m_Object: {fileID: 147357532345208012}
+    m_RolesMask: 1
+  - m_Object: {fileID: 301427650546940538}
+    m_RolesMask: 1
+  - m_Object: {fileID: 4190079083358474589}
+    m_RolesMask: 1
+  - m_Object: {fileID: 264407954611876039}
+    m_RolesMask: 1
+  - m_Object: {fileID: 5329242550558330631}
+    m_RolesMask: 1
+--- !u!114 &1617891146897931688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4583041443411801923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: 
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}
 --- !u!1 &7129765099861339268
 GameObject:
   m_ObjectHideFlags: 0
@@ -285,6 +355,8 @@ GameObject:
   - component: {fileID: 3436924811671481473}
   - component: {fileID: 4605728415757919149}
   - component: {fileID: 3847674180955541185}
+  - component: {fileID: 1574309447967142544}
+  - component: {fileID: 2116331053122563359}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -512,7 +584,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7129765099861339268}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0a297cf390965ec4795a8f84e3c6f5ac, type: 3}
   m_Name: 
@@ -529,3 +601,53 @@ MonoBehaviour:
   _cubeGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
   _cylinderGameObject: {fileID: 8982884938002949884, guid: c8add14eb342b224f82b2ac1749f4c32, type: 3}
   _prismGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
+  switchShapeAction: {fileID: -8573553177920828540, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
+  addVolumeAction: {fileID: -5100287123811288618, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
+  removeVolumeAction: {fileID: 4308968442546415600, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
+--- !u!1652712579 &1574309447967142544
+MultiplayerRolesData:
+  m_ObjectHideFlags: 2
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7129765099861339268}
+  m_GameObjectRolesMask: 1
+  m_ComponentsRolesMasks:
+  - m_Object: {fileID: 3847674180955541185}
+    m_RolesMask: 1
+  - m_Object: {fileID: 4605728415757919149}
+    m_RolesMask: 1
+  - m_Object: {fileID: 3436924811671481473}
+    m_RolesMask: 1
+  - m_Object: {fileID: 1104787241097031942}
+    m_RolesMask: 1
+--- !u!114 &2116331053122563359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7129765099861339268}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: 
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}

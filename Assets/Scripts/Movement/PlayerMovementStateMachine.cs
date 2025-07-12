@@ -2,11 +2,12 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using FishNet.Object;
 
 namespace Movement
 {
     [Serializable]
-    public class PlayerMovementStateMachine : MonoBehaviour
+    public class PlayerMovementStateMachine : NetworkBehaviour
     {
         public PlayerMovementState CurrentState { get; private set; }
         [SerializeField] private PlayerMovementStack _stack;
