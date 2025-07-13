@@ -27,7 +27,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1010943544318972599
 Transform:
   m_ObjectHideFlags: 0
@@ -64,7 +64,7 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Height: 1
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &5475771938992727219
@@ -119,7 +119,7 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 1
+  m_Height: 2
   m_Radius: 0.5
   m_SlopeLimit: 45
   m_StepOffset: 0.3
@@ -160,7 +160,7 @@ MonoBehaviour:
   _componentIndexCache: 2
   _addedNetworkObject: {fileID: 5329242550558330631}
   _networkObjectCache: {fileID: 5329242550558330631}
-  MouseSensitivity: 2
+  MouseSensitivity: 0.5
   MaxLookAngle: 85
   cameraHolder: {fileID: 3354640017447761075}
 --- !u!33 &4190079083358474589
@@ -239,6 +239,7 @@ MonoBehaviour:
   - {fileID: 8956037590112614809}
   - {fileID: 301427650546940538}
   - {fileID: -8841479542484923347}
+  - {fileID: 3847674180955541185}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -584,11 +585,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7129765099861339268}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0a297cf390965ec4795a8f84e3c6f5ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 4
+  _addedNetworkObject: {fileID: 5329242550558330631}
+  _networkObjectCache: {fileID: 5329242550558330631}
   _reachDistance: 5
   _chunkLayer:
     serializedVersion: 2
@@ -601,9 +605,6 @@ MonoBehaviour:
   _cubeGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
   _cylinderGameObject: {fileID: 8982884938002949884, guid: c8add14eb342b224f82b2ac1749f4c32, type: 3}
   _prismGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
-  switchShapeAction: {fileID: -8573553177920828540, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
-  addVolumeAction: {fileID: -5100287123811288618, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
-  removeVolumeAction: {fileID: 4308968442546415600, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
 --- !u!1652712579 &1574309447967142544
 MultiplayerRolesData:
   m_ObjectHideFlags: 2

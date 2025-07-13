@@ -574,7 +574,7 @@ GameObject:
   - component: {fileID: 1913440709}
   - component: {fileID: 1913440708}
   - component: {fileID: 1913440707}
-  m_Layer: 3
+  m_Layer: 0
   m_Name: Plane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -729,7 +729,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5329242550558330631, guid: bb83608d20ff3474281a2903366628ed, type: 3}
       propertyPath: WasActiveDuringEdit
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5329242550558330631, guid: bb83608d20ff3474281a2903366628ed, type: 3}
       propertyPath: <SceneId>k__BackingField

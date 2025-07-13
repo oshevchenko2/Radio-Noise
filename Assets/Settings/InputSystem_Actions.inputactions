@@ -34,7 +34,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "SwitchShape",
+                    "name": "switchShapeAction",
                     "type": "Button",
                     "id": "9d86a623-556d-409a-857d-824cb2ea047d",
                     "expectedControlType": "",
@@ -43,7 +43,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "AddVolume",
+                    "name": "addVolumeAction",
                     "type": "Button",
                     "id": "cc260b11-52da-4927-bffc-cfc4618020b8",
                     "expectedControlType": "",
@@ -52,7 +52,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "RemoveVolume",
+                    "name": "removeVolumeAction",
                     "type": "Button",
                     "id": "acd7a19b-fd20-4eb9-ac54-341eb7684b1d",
                     "expectedControlType": "",
@@ -223,7 +223,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "SwitchShape",
+                    "action": "switchShapeAction",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -234,7 +234,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Gamepad",
-                    "action": "SwitchShape",
+                    "action": "switchShapeAction",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -245,7 +245,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "AddVolume",
+                    "action": "addVolumeAction",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -256,7 +256,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Gamepad",
-                    "action": "AddVolume",
+                    "action": "addVolumeAction",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -267,7 +267,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "RemoveVolume",
+                    "action": "removeVolumeAction",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -278,7 +278,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Gamepad",
-                    "action": "RemoveVolume",
+                    "action": "removeVolumeAction",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

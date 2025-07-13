@@ -2152,6 +2152,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 3461052805121757716, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
+      propertyPath: WasActiveDuringEdit
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3461052805121757716, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
+      propertyPath: <SceneId>k__BackingField
+      value: 4285228527
+      objectReference: {fileID: 0}
     - target: {fileID: 7277225309148165785, guid: aef7010fc927aeb4b9ee3f40b6ffd865, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 1070446332
