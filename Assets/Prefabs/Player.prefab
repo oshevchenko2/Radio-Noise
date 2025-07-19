@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 7121464847553573905}
   - component: {fileID: 1990921779517255759}
   - component: {fileID: 2706938612422782668}
+  - component: {fileID: 8275274714024399136}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -245,6 +246,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a297cf390965ec4795a8f84e3c6f5ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 3
+  _addedNetworkObject: {fileID: 3461052805121757716}
+  _networkObjectCache: {fileID: 3461052805121757716}
   _reachDistance: 5
   _chunkLayer:
     serializedVersion: 2
@@ -257,9 +261,36 @@ MonoBehaviour:
   _cubeGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
   _cylinderGameObject: {fileID: 8982884938002949884, guid: c8add14eb342b224f82b2ac1749f4c32, type: 3}
   _prismGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
-  switchShapeAction: {fileID: 0}
-  addVolumeAction: {fileID: 0}
-  removeVolumeAction: {fileID: 0}
+--- !u!114 &8275274714024399136
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 681547369985835824}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: 
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}
 --- !u!1 &3210487452195438290
 GameObject:
   m_ObjectHideFlags: 0
@@ -278,6 +309,7 @@ GameObject:
   - component: {fileID: 7729257778808155969}
   - component: {fileID: 7475553813155582695}
   - component: {fileID: 3461052805121757716}
+  - component: {fileID: 4484535925170428307}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -336,9 +368,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e84bd72fa655c54788421fdc9cf7f28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 255
+  _componentIndexCache: 0
   _addedNetworkObject: {fileID: 3461052805121757716}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 3461052805121757716}
   _stack:
     _stack: []
 --- !u!114 &5474275996745872680
@@ -353,9 +385,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 244527d3efaeac2499656aeda933baf3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 255
+  _componentIndexCache: 1
   _addedNetworkObject: {fileID: 3461052805121757716}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 3461052805121757716}
   _stack:
     _stack: []
 --- !u!143 &151713382415767473
@@ -390,7 +422,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3210487452195438290}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ff3575c6a3a9a22409e4f763ce5ab346, type: 3}
   m_Name: 
@@ -414,11 +446,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52348d0cb5ccccf43b1744d485e8838d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 255
+  _componentIndexCache: 2
   _addedNetworkObject: {fileID: 3461052805121757716}
-  _networkObjectCache: {fileID: 0}
-  MouseSensitivity: 2
+  _networkObjectCache: {fileID: 3461052805121757716}
+  MouseSensitivity: 0.5
   MaxLookAngle: 85
+  cameraHolder: {fileID: 5094146489929255589}
 --- !u!33 &7729257778808155969
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -490,7 +523,11 @@ MonoBehaviour:
   <ComponentIndex>k__BackingField: 0
   <PredictedSpawn>k__BackingField: {fileID: 0}
   <PredictedOwner>k__BackingField: {fileID: 0}
-  NetworkBehaviours: []
+  NetworkBehaviours:
+  - {fileID: 3152151178207945597}
+  - {fileID: 5474275996745872680}
+  - {fileID: 2124624577445175242}
+  - {fileID: 2706938612422782668}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -515,12 +552,42 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 65535
+  <PrefabId>k__BackingField: 11
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 7807759643866311769
   <SceneId>k__BackingField: 0
   SerializedTransformProperties:
-    Position: {x: 0, y: 0, z: 0}
-    Rotation: {x: 0, y: 0, z: 0, w: 0}
-    Scale: {x: 0, y: 0, z: 0}
-    IsValid: 0
+    Position: {x: 177.9, y: 32, z: 161.5}
+    Rotation: {x: 0, y: 0, z: 0, w: 1}
+    Scale: {x: 1, y: 1, z: 1}
+    IsValid: 1
+--- !u!114 &4484535925170428307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3210487452195438290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: 35845fe01580c41289b024647b1d1c53, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: 
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}

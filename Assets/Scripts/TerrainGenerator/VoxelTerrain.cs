@@ -109,7 +109,7 @@ namespace TerrainGenerator
         private ConcurrentQueue<ChunkGenResult> _readyChunks = new();
         private HashSet<Vector2Int> _generatingChunks = new();
 
-        private SemaphoreSlim _chunkGenSemaphore = new(8);
+        private SemaphoreSlim _chunkGenSemaphore = new(6);
 
         private const int MaxChunksPerFrame = 2;
         #endregion
