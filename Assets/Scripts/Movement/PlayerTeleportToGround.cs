@@ -13,20 +13,21 @@ public class PlayerTeleport : MonoBehaviour
 
     [SerializeField] private GameObject _loadingScreen;
 
+    [SerializeField] private GameObject _player;
+
+
     void Awake()
     {
         if (_terrain == null) return;
 
         Vector3 randomPosition = new(Random.Range(0, _terrain.WorldSize), 30, Random.Range(0, _terrain.WorldSize));
 
-        if (TryGetComponent<CharacterController>(out var controller))
+        if (_player.TryGetComponent<CharacterController>(out var controller))
         {
             controller.enabled = false;
-        
             transform.position = randomPosition;
-        
             controller.enabled = true;
-        }
+            }
         else
         {
             transform.position = randomPosition;
@@ -54,7 +55,7 @@ public class PlayerTeleport : MonoBehaviour
                 Vector3 newPosition = hit.point;
                 newPosition.y += yOffset;
 
-                if (TryGetComponent<CharacterController>(out var controller2))
+                if (_player.TryGetComponent<CharacterController>(out var controller2))
                 {
                     controller2.enabled = false;
 

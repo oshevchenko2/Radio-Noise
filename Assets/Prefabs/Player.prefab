@@ -434,6 +434,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   _loadingScreen: {fileID: 0}
+  _player: {fileID: 0}
 --- !u!114 &2124624577445175242
 MonoBehaviour:
   m_ObjectHideFlags: 0

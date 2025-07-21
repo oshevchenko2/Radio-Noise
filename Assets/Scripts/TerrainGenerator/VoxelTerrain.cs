@@ -109,9 +109,9 @@ namespace TerrainGenerator
         private ConcurrentQueue<ChunkGenResult> _readyChunks = new();
         private HashSet<Vector2Int> _generatingChunks = new();
 
-        private SemaphoreSlim _chunkGenSemaphore = new(6);
+        private SemaphoreSlim _chunkGenSemaphore = new(8);
 
-        private const int MaxChunksPerFrame = 2;
+        private const int MaxChunksPerFrame = 3;
         #endregion
 
         // MeshPool as protection + optimization from unnecessary use of meshes
@@ -341,10 +341,10 @@ namespace TerrainGenerator
 
         private void Update()
         {
-            /*if (Input.GetKeyDown(KeyCode.F6))
+            if (Input.GetKeyDown(KeyCode.F6))
             {
                 SceneManager.LoadSceneAsync(1);
-            }*/
+            }
         }
 
         void InitializeMeshPool()

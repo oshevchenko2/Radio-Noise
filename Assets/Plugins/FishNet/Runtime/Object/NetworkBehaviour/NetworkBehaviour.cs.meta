@@ -1,14 +1,5 @@
 fileFormatVersion: 2
 guid: d2230f9cdb1ffc9489b53875c963342d
-MonoImporter:
-  externalObjects: {}
-  serializedVersion: 2
-  defaultReferences: []
-  executionOrder: 0
-  icon: {instanceID: 0}
-  userData: 
-  assetBundleName: 
-  assetBundleVariant: 
 AssetOrigin:
   serializedVersion: 1
   productId: 207815
@@ -16,3 +7,12 @@ AssetOrigin:
   packageVersion: 4.6.9R
   assetPath: Assets/FishNet/Runtime/Object/NetworkBehaviour/NetworkBehaviour.cs
   uploadId: 762203
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 10050
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

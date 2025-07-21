@@ -295,19 +295,19 @@ MonoBehaviour:
   active: 1
   quality:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 3
   intensity:
     m_OverrideState: 1
     m_Value: 0.5
   maximumVelocity:
     m_OverrideState: 1
-    m_Value: 200
+    m_Value: 0
   minimumVelocity:
     m_OverrideState: 1
-    m_Value: 2
+    m_Value: 0
   cameraMotionBlur:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   specialCameraClampMode:
     m_OverrideState: 1
     m_Value: 0
@@ -322,7 +322,7 @@ MonoBehaviour:
     m_Value: 0.03
   depthComparisonExtent:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   m_SampleCount:
     m_OverrideState: 1
     m_Value: 8
@@ -458,7 +458,7 @@ MonoBehaviour:
   active: 1
   mode:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 1
   color:
     m_OverrideState: 1
     m_Value: {r: 0, g: 0, b: 0, a: 1}
@@ -836,7 +836,7 @@ MonoBehaviour:
     m_Value: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   balance:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: -27
 --- !u!114 &-3163473085800658137
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -852,7 +852,7 @@ MonoBehaviour:
   active: 1
   temperature:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: -16
   tint:
     m_OverrideState: 1
     m_Value: 0
@@ -1103,7 +1103,7 @@ MonoBehaviour:
     m_Value: {r: 1, g: 1, b: 1, a: 1}
   bloomMip:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   firstFlareIntensity:
     m_OverrideState: 1
     m_Value: 1
@@ -1397,7 +1397,7 @@ MonoBehaviour:
   active: 1
   quality:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   threshold:
     m_OverrideState: 1
     m_Value: 0
@@ -1421,13 +1421,13 @@ MonoBehaviour:
     m_Value: 1
   m_Resolution:
     m_OverrideState: 1
-    m_Value: 2
+    m_Value: 4
   m_HighQualityPrefiltering:
     m_OverrideState: 1
     m_Value: 0
   m_HighQualityFiltering:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
 --- !u!114 &1932259527246508038
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -2292,7 +2292,7 @@ MonoBehaviour:
   active: 1
   mode:
     m_OverrideState: 1
-    m_Value: 2
+    m_Value: 0
   useFullACES:
     m_OverrideState: 1
     m_Value: 0
