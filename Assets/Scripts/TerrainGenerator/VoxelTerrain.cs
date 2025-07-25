@@ -7,13 +7,13 @@ using Unity.Jobs;
 using Unity.Burst;
 using System.Collections;
 using Unity.Mathematics;
-using UnityEngine.SceneManagement;
 using System.Collections.Concurrent;
 using System.Threading;
+using FishNet.Object;
 
 namespace TerrainGenerator
 {
-    public class VoxelTerrain : MonoBehaviour
+    public class VoxelTerrain : NetworkBehaviour
     {
         #region Variables
         [SerializeField] private int _chunkSize = 16;
@@ -112,6 +112,12 @@ namespace TerrainGenerator
         private SemaphoreSlim _chunkGenSemaphore = new(8);
 
         private const int MaxChunksPerFrame = 3;
+
+        private readonly List<Transform> _activePlayers = new();
+        
+        private const float ChunkActivationRadius = 96f;
+        private const float ChunkUnloadRadius = ChunkActivationRadius + 32f;
+
         #endregion
 
         // MeshPool as protection + optimization from unnecessary use of meshes
@@ -247,12 +253,29 @@ namespace TerrainGenerator
 
         #endregion
 
-        void Start()
+        [ObserversRpc(BufferLast = true)]
+        private void RpcSetSeeds(float seedX, float seedZ)
         {
+            _seedX = seedX;
+            _seedZ = seedZ;
+            GenerateBiomeMap();
+
+            if (IsClientOnlyInitialized)
+            {
+                StartCoroutine(DynamicChunkGeneration());
+            }
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+
+            if (!IsServerInitialized) return;
+
             _shader = Shader.Find("HDRenderPipeline/Lit");
 
             InitializeMeshPool();
-            
+
             _seedX = UnityEngine.Random.Range(-10000000f, 10000000f);
             _seedZ = UnityEngine.Random.Range(-10000000f, 10000000f);
 
@@ -260,8 +283,23 @@ namespace TerrainGenerator
 
             GenerateBiomeMap();
 
+            RpcSetSeeds(_seedX, _seedZ);
+
             StartCoroutine(GenerateWorld());
             StartCoroutine(DynamicChunkGeneration());
+        }
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            if (IsClientInitialized)
+            {
+                if (!IsServerInitialized)
+                {
+                    GenerateBiomeMap();
+                }
+                StartCoroutine(DynamicChunkGeneration());
+            }
         }
 
         IEnumerator DynamicChunkGeneration()
@@ -336,14 +374,6 @@ namespace TerrainGenerator
                 }
 
                 yield return new WaitForSecondsRealtime(0.5f);
-            }
-        }
-
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.F6))
-            {
-                SceneManager.LoadSceneAsync(1);
             }
         }
 

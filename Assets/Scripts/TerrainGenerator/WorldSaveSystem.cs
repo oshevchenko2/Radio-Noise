@@ -5,13 +5,14 @@ using System.IO.Compression;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.Serialization.Formatters.Binary;
+using FishNet.Object;
 using Unity.Entities;
 using UnityEngine;
 
 namespace TerrainGenerator
 {
     [Serializable]
-    public class WorldSaveSystem : MonoBehaviour
+    public class WorldSaveSystem : NetworkBehaviour
     {
         public VoxelTerrain Terrain;
         private string _filePath;
@@ -23,11 +24,13 @@ namespace TerrainGenerator
 
         private void Update()
         {
-            if(Input.GetKeyDown(KeyCode.F3))
+            if (!IsOwner) return;
+
+            if (Input.GetKeyDown(KeyCode.F3))
             {
                 SaveWorld();
             }
-            else if(Input.GetKeyDown(KeyCode.F9))
+            else if (Input.GetKeyDown(KeyCode.F9))
             {
                 LoadWorld();
             }

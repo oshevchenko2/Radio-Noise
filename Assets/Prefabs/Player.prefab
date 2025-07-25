@@ -246,7 +246,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a297cf390965ec4795a8f84e3c6f5ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 3
+  _componentIndexCache: 4
   _addedNetworkObject: {fileID: 3461052805121757716}
   _networkObjectCache: {fileID: 3461052805121757716}
   _reachDistance: 5
@@ -427,6 +427,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff3575c6a3a9a22409e4f763ce5ab346, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 2
+  _addedNetworkObject: {fileID: 3461052805121757716}
+  _networkObjectCache: {fileID: 3461052805121757716}
   _terrain: {fileID: 0}
   rayLength: 100
   yOffset: 0.5
@@ -447,7 +450,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52348d0cb5ccccf43b1744d485e8838d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 2
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 3461052805121757716}
   _networkObjectCache: {fileID: 3461052805121757716}
   MouseSensitivity: 0.5
@@ -527,6 +530,7 @@ MonoBehaviour:
   NetworkBehaviours:
   - {fileID: 3152151178207945597}
   - {fileID: 5474275996745872680}
+  - {fileID: 698482598694048250}
   - {fileID: 2124624577445175242}
   - {fileID: 2706938612422782668}
   InitializedParentNetworkBehaviour: {fileID: 0}

@@ -1,8 +1,9 @@
 using System.Collections;
+using FishNet.Object;
 using TerrainGenerator;
 using UnityEngine;
 
-public class PlayerTeleport : MonoBehaviour
+public class PlayerTeleport : NetworkBehaviour
 {
     [SerializeField] private VoxelTerrain _terrain;
     
@@ -15,8 +16,14 @@ public class PlayerTeleport : MonoBehaviour
 
     [SerializeField] private GameObject _player;
 
+    private static int _serverSpawnCount = 0;
 
     void Awake()
+    {
+        ResetPosition();
+    }
+
+    void ResetPosition()
     {
         if (_terrain == null) return;
 
@@ -24,23 +31,32 @@ public class PlayerTeleport : MonoBehaviour
 
         if (_player.TryGetComponent<CharacterController>(out var controller))
         {
-            controller.enabled = false;
+            //controller.enabled = false;
             transform.position = randomPosition;
-            controller.enabled = true;
-            }
+            //controller.enabled = true;
+        }
         else
         {
             transform.position = randomPosition;
         }
     }
 
-    void Start()
+    public override void OnStartClient()
     {
+        if (_serverSpawnCount > 0)
+        {
+            ResetPosition();
+        }
+
         StartCoroutine(TeleportWhenGroundReady());
+
+        _serverSpawnCount++;
     }
 
     private IEnumerator TeleportWhenGroundReady()
     {
+        if (!IsOwner) yield return null;
+
         if (_terrain == null)
         {
             yield break;
