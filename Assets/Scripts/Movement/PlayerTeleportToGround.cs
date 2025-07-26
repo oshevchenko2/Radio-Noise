@@ -12,7 +12,7 @@ public class PlayerTeleport : NetworkBehaviour
 
     [SerializeField] private LayerMask groundLayer;
 
-    [SerializeField] private GameObject _loadingScreen;
+    [SerializeField] private Loading.Loading _loadingScreen;
 
     [SerializeField] private GameObject _player;
 
@@ -20,7 +20,9 @@ public class PlayerTeleport : NetworkBehaviour
 
     void Awake()
     {
-        ResetPosition();
+        if (_terrain == null) _terrain = InstanceManager.Instance.Terrain;
+        if (_loadingScreen == null) _loadingScreen = InstanceManager.Instance.Loading;
+        _player = this.gameObject;
     }
 
     void ResetPosition()
@@ -43,11 +45,9 @@ public class PlayerTeleport : NetworkBehaviour
 
     public override void OnStartClient()
     {
-        if (_serverSpawnCount > 0)
-        {
-            ResetPosition();
-        }
+        if (!IsOwner) return;
 
+        ResetPosition();
         StartCoroutine(TeleportWhenGroundReady());
 
         _serverSpawnCount++;
@@ -89,7 +89,7 @@ public class PlayerTeleport : NetworkBehaviour
                 if (_loadingScreen != null)
                 {
                     yield return new WaitForSeconds(1f);
-                    _loadingScreen.SetActive(false);
+                    _loadingScreen.gameObject.SetActive(false);
                 }
             }
             else

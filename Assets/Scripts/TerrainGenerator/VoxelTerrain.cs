@@ -113,10 +113,10 @@ namespace TerrainGenerator
 
         private const int MaxChunksPerFrame = 3;
 
-        private readonly List<Transform> _activePlayers = new();
-        
-        private const float ChunkActivationRadius = 96f;
-        private const float ChunkUnloadRadius = ChunkActivationRadius + 32f;
+        private Dictionary<Vector2Int, InstancedChunkData> _instancedChunks = new();
+        private Dictionary<Vector2Int, ChunkData> _modifiedChunks = new();
+
+        private float _instanceDistance = 128f;
 
         #endregion
 
@@ -258,6 +258,7 @@ namespace TerrainGenerator
         {
             _seedX = seedX;
             _seedZ = seedZ;
+
             GenerateBiomeMap();
 
             if (IsClientOnlyInitialized)
@@ -298,6 +299,7 @@ namespace TerrainGenerator
                 {
                     GenerateBiomeMap();
                 }
+                
                 StartCoroutine(DynamicChunkGeneration());
             }
         }
@@ -853,11 +855,6 @@ namespace TerrainGenerator
                 }
             }
         }
-
-        private Dictionary<Vector2Int, InstancedChunkData> _instancedChunks = new();
-        private float _instanceDistance = 128f;
-
-        private Dictionary<Vector2Int, ChunkData> _modifiedChunks = new();
 
         public void SetModifiedChunk(Vector2Int coord, ChunkData data)
         {

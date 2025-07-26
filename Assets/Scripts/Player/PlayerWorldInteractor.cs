@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FishNet.Object;
+using Unity.Entities.UniversalDelegates;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -27,9 +29,12 @@ namespace Player
 
         [SerializeField] Dictionary<Type, GameObjectInstance> _shapeMeshes = new();
 
+        private readonly List<Vector2> _pendingRemoves = new();
+        private readonly List<Vector2> _pendingAdds    = new();
+
         private float lastCheckObjectInstance = 0;
 
-        private Camera _cam;
+        [SerializeField] private Camera _cam;
         private int _chunkLayerIndex;
 
         void Start()
@@ -37,11 +42,11 @@ namespace Player
             _shapeMeshes.Add(typeof(Cube), _cubeGameObject);
             _shapeMeshes.Add(typeof(Cylinder), _cylinderGameObject);
             _shapeMeshes.Add(typeof(Prism), _prismGameObject);
-        
+
             _prismMesh = GenerateTriangularPrismMesh(_shapeSize, _shapeSize);
-        
-            _cam = GetComponent<Camera>();
-        
+
+            if (_cam == null) _cam = GetComponent<Camera>();
+
             _chunkLayerIndex = GetFirstLayerFromMask(_chunkLayer);
             // Convert LayerMask 2 a numeric layer index 4 easy invocation
         }
@@ -59,30 +64,87 @@ namespace Player
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
                 RemoveTriangle();
+                RequestRemoveTriangleServerRpc(Mouse.current.position.ReadValue());
                 Debug.Log($"Removed {_shape} at {transform.position}");
             }
 
             if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
             {
                 AddVolume();
+                RequestAddVolumeServerRpc(Mouse.current.position.ReadValue());
                 Debug.Log($"Added {_shape} at {transform.position}");
             }
 
             if (Time.time - lastCheckObjectInstance > 3)
-                {
-                    lastCheckObjectInstance = Time.time;
+            {
+                lastCheckObjectInstance = Time.time;
 
-                    for (int i = 0; i < Shape.List.Count; i++)
+                for (int i = 0; i < Shape.List.Count; i++)
+                {
+                    if (Shape.IsNear(i, transform.position))
                     {
-                        if (Shape.IsNear(i, transform.position))
-                        {
-                            GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].Position, Quaternion.identity);
-                            Shape.List[i].IsSpawned = true;
-                            go.Camera = transform;
-                            go.Index = i;
-                        }
+                        GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].Position, Quaternion.identity);
+                        Shape.List[i].IsSpawned = true;
+                        go.Camera = transform;
+                        go.Index = i;
                     }
                 }
+            }
+
+            for (int i = _pendingRemoves.Count - 1; i >= 0; i--)
+            {
+                var pos = _pendingRemoves[i];
+                var ray = _cam.ScreenPointToRay(pos);
+                if (Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer))
+                {
+                    var mf = hit.collider.GetComponent<MeshFilter>();
+                    var mc = hit.collider.GetComponent<MeshCollider>();
+                    RemoveTriangle(mf.mesh, mc, hit.triangleIndex);
+                    _pendingRemoves.RemoveAt(i);
+                }
+            }
+
+            for (int i = _pendingAdds.Count - 1; i >= 0; i--)
+            {
+                var pos = _pendingAdds[i];
+                var ray = _cam.ScreenPointToRay(pos);
+                if (Physics.Raycast(ray, out var hit, _reachDistance))
+                {
+                    float cellSize = _shapeSize;
+                    Vector3 halfExtents = GetShapeHalfExtents();
+                    Vector3 normal = hit.normal.normalized;
+                    Vector3 targetPoint = hit.point + normal * cellSize;
+                    Vector3Int grid = new(
+                        Mathf.RoundToInt(targetPoint.x / cellSize),
+                        Mathf.RoundToInt(targetPoint.y / cellSize),
+                        Mathf.RoundToInt(targetPoint.z / cellSize)
+                    );
+                    Vector3 targetPosition = GridToWorldPosition(grid, cellSize);
+                    Quaternion rotation = Quaternion.FromToRotation(Vector3.up, normal);
+
+                    bool hasCollision = false;
+                    Collider[] cols = _shape == ShapeType.Cylinder
+                        ? Physics.OverlapCapsule(
+                            targetPosition - rotation * Vector3.up * halfExtents.y,
+                            targetPosition + rotation * Vector3.up * halfExtents.y,
+                            halfExtents.x,
+                            _chunkLayer
+                        )
+                        : Physics.OverlapBox(
+                            targetPosition,
+                            halfExtents,
+                            rotation,
+                            _chunkLayer
+                        );
+                    foreach (var c in cols) if (c != hit.collider) { hasCollision = true; break; }
+
+                    if (!hasCollision)
+                    {
+                        CreateShapeAt(targetPosition, rotation);
+                        _pendingAdds.RemoveAt(i);
+                    }
+                }
+            }
 
             // Cubes
             var cubeList = Shape.List.Where(s => s is Cube).Cast<Cube>().ToList();
@@ -109,10 +171,14 @@ namespace Player
                 Graphics.DrawMeshInstanced(_prismMesh, 0, _addMaterial, prismMats);
         }
 
+
+
         void RemoveTriangle()
         {
             Vector2 mousePos = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
+
             var ray = _cam.ScreenPointToRay(mousePos);
+
             if (!Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer))
                 return;
 
@@ -123,11 +189,11 @@ namespace Player
                 if (inst != null && inst.Index >= 0 && inst.Index < Shape.List.Count)
                 {
                     Shape.SafeRemoveAt(inst.Index);
-                    
+
                     foreach (var o in GameObjectInstance.ActiveInstances)
                         if (o.Index > inst.Index)
                             o.Index--;
-                    
+
                     Destroy(go);
                 }
                 return;
@@ -152,7 +218,7 @@ namespace Player
 
             int[] tris = mesh.GetTriangles(subMesh);
             if (triLocalIdx < 0 || triLocalIdx >= tris.Length / 3) return;
-            
+
             int triStart = triLocalIdx * 3;
             int triA = tris[triStart];
             int triB = tris[triStart + 1];
@@ -164,7 +230,7 @@ namespace Player
 
             Vector3[] verts = mesh.vertices;
             Vector3[] oldPositions = { verts[triA], verts[triB], verts[triC] };
-            
+
             verts[triA] += Vector3.down * 0.5f;
             verts[triB] += Vector3.down * 0.5f;
             verts[triC] += Vector3.down * 0.5f;
@@ -184,7 +250,7 @@ namespace Player
             mesh.vertices = verts;
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
-            
+
             meshCollider.sharedMesh = null;
             meshCollider.sharedMesh = mesh;
         }
@@ -200,7 +266,7 @@ namespace Player
             }
             return -1;
         }
-        
+
         void AddVolume()
         {
             Vector2 mousePos = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
@@ -238,9 +304,9 @@ namespace Player
             else
             {
                 colliders = Physics.OverlapBox(
-                    targetPosition, 
-                    halfExtents, 
-                    rotation, 
+                    targetPosition,
+                    halfExtents,
+                    rotation,
                     _chunkLayer
                 );
             }
@@ -295,12 +361,12 @@ namespace Player
         {
             return _shape switch
             {
-                ShapeType.Cube => new Vector3(_shapeSize/2, _shapeSize/2, _shapeSize/2),
-                ShapeType.Cylinder => new Vector3(_shapeSize/2, _shapeSize/2, _shapeSize/2),
-                ShapeType.Triangle => new Vector3(_shapeSize/2, _shapeSize/4, _shapeSize/2),
-                _ => Vector3.one * _shapeSize/2
+                ShapeType.Cube => new Vector3(_shapeSize / 2, _shapeSize / 2, _shapeSize / 2),
+                ShapeType.Cylinder => new Vector3(_shapeSize / 2, _shapeSize / 2, _shapeSize / 2),
+                ShapeType.Triangle => new Vector3(_shapeSize / 2, _shapeSize / 4, _shapeSize / 2),
+                _ => Vector3.one * _shapeSize / 2
             };
-            
+
         }
 
         void CreateShapeAt(Vector3 position, Quaternion rotation)
@@ -325,7 +391,7 @@ namespace Player
 
             new Cube(p);
 
-            GameObjectInstance go = Instantiate(_cubeGameObject, p,Quaternion.identity);
+            GameObjectInstance go = Instantiate(_cubeGameObject, p, Quaternion.identity);
 
             //var go = Instantiate(_cylinderGameObject, p, r);
 
@@ -333,7 +399,7 @@ namespace Player
 
             go.Camera = transform;
             go.Index = Cube.List.Count - 1;
-            
+
             // o - primitive cube
             // p - position
             // r - material
@@ -355,7 +421,7 @@ namespace Player
 
             go.Camera = transform;
             go.Index = Shape.List.Count - 1;
-            
+
             //o.transform.localScale = new Vector3(_shapeSize, _shapeSize, _shapeSize);
         }
 
@@ -397,7 +463,7 @@ namespace Player
             obj.layer = _chunkLayerIndex;
             obj.transform.SetPositionAndRotation(position, rotation);
             if (obj.TryGetComponent<MeshRenderer>(out var renderer)) renderer.material = _addMaterial;
-            
+
             if (obj.TryGetComponent<Collider>(out var collider)) collider.isTrigger = false;
         }
 
@@ -437,7 +503,7 @@ namespace Player
 
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
-            
+
             return mesh;
         }
 
@@ -446,12 +512,88 @@ namespace Player
             int layerMask = mask.value;
             if (layerMask == 0) return 0;
             // If no mask - retrun
-            
+
             int layer = 0;
             while ((layerMask & (1 << layer)) == 0) layer++;
             // Shift the bit mask until find first bit set
 
             return layer;
+        }
+
+        [ServerRpc(RequireOwnership = false, RunLocally = true)]
+        private void RequestRemoveTriangleServerRpc(Vector2 mousePos)
+        {
+            //RemoveTriangle();
+            RemoveTriangleObserversRpc(mousePos);
+        }
+
+        [ObserversRpc(RunLocally = false)]
+        private void RemoveTriangleObserversRpc(Vector2 mousePos)
+        {
+            if (IsOwner) return;
+            if (_cam == null)
+            {
+                if (_cam == null)
+                {
+                    _pendingRemoves.Add(mousePos);
+                    return;
+                }
+            }
+
+            var ray = _cam.ScreenPointToRay(mousePos);
+            if (!Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer) || hit.collider == null)
+            {
+                _pendingRemoves.Add(mousePos);
+                return;
+            }
+
+            var go = hit.collider.gameObject;
+            if (go.name.StartsWith("Volume_"))
+            {
+                var inst = go.GetComponent<GameObjectInstance>();
+                if (inst != null && inst.Index >= 0 && inst.Index < Shape.List.Count)
+                {
+                    Shape.SafeRemoveAt(inst.Index);
+
+                    foreach (var o in GameObjectInstance.ActiveInstances)
+                        if (o.Index > inst.Index)
+                            o.Index--;
+
+                    Destroy(go);
+                }
+                return;
+            }
+            var mf = hit.collider.GetComponent<MeshFilter>();
+            var mc = hit.collider.GetComponent<MeshCollider>();
+            if (mf == null || mc == null)
+            {
+                _pendingRemoves.Add(mousePos);
+                return;
+            }
+
+            var clonedMesh = Instantiate(mf.mesh);
+            RemoveTriangle(clonedMesh, mc, hit.triangleIndex);
+        }
+
+        [ServerRpc(RequireOwnership = false, RunLocally = true)]
+        private void RequestAddVolumeServerRpc(Vector2 mousePos)
+        {
+            //AddVolume();
+            AddVolumeObserversRpc(mousePos);
+        }
+
+        [ObserversRpc(RunLocally = false)]
+        private void AddVolumeObserversRpc(Vector2 mousePos)
+        {
+            if (IsOwner) return;
+
+            var ray = _cam.ScreenPointToRay(mousePos);
+
+            if (Physics.Raycast(ray, out var hit, _reachDistance))
+            {
+                AddVolume();
+            }
+            else _pendingAdds.Add(mousePos);
         }
     }
 }

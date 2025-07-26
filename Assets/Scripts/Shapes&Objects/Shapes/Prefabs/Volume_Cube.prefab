@@ -66,5 +66,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61af93892d974244b8a753c3614de010, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 0}
+  _networkObjectCache: {fileID: 0}
   Camera: {fileID: 0}
   Index: 0
