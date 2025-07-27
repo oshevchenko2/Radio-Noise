@@ -1,6 +1,8 @@
-public enum ShapeType 
-{ 
-    Triangle, 
-    Cube, 
-    Cylinder 
+using UnityEngine;
+
+public enum ShapeType
+{
+    Triangle,
+    Cube,
+    Cylinder
 }

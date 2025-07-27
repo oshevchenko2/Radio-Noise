@@ -1,5 +1,6 @@
 using UnityEngine;
 using TerrainGenerator;
+using Player;
 
 public class InstanceManager : MonoBehaviour
 {

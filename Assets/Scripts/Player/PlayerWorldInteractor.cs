@@ -1,12 +1,11 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using FishNet.Object;
-using Unity.Entities.UniversalDelegates;
-using Unity.VisualScripting;
+using FishNet.Object.Synchronizing;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 namespace Player
 {
@@ -27,24 +26,26 @@ namespace Player
         [SerializeField] private GameObjectInstance _cylinderGameObject;
         [SerializeField] private GameObjectInstance _prismGameObject;
 
-        [SerializeField] Dictionary<Type, GameObjectInstance> _shapeMeshes = new();
+        Dictionary<Type, GameObjectInstance> _shapeMeshes = new();
 
         private readonly List<Vector2> _pendingRemoves = new();
-        private readonly List<Vector2> _pendingAdds    = new();
+        private readonly List<Vector2> _pendingAdds = new();
 
         private float lastCheckObjectInstance = 0;
 
         [SerializeField] private Camera _cam;
         private int _chunkLayerIndex;
 
+        public WorldShapeManager worldShapeManager;
+
         void Start()
         {
             _shapeMeshes.Add(typeof(Cube), _cubeGameObject);
             _shapeMeshes.Add(typeof(Cylinder), _cylinderGameObject);
-            _shapeMeshes.Add(typeof(Prism), _prismGameObject);
+            _shapeMeshes.Add(typeof(Prism), _prismGameObject); //
 
-            _prismMesh = GenerateTriangularPrismMesh(_shapeSize, _shapeSize);
-
+            if (_prismMesh == null) _prismMesh = GenerateTriangularPrismMesh(_shapeSize, _shapeSize);
+            
             if (_cam == null) _cam = GetComponent<Camera>();
 
             _chunkLayerIndex = GetFirstLayerFromMask(_chunkLayer);
@@ -53,99 +54,6 @@ namespace Player
 
         void Update()
         {
-            if (!IsOwner) return;
-
-            if (Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame)
-            {
-                _shape = (ShapeType)(((int)_shape + 1) % Enum.GetValues(typeof(ShapeType)).Length);
-                Debug.Log($"Current shape: {_shape}");
-            }
-
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                RemoveTriangle();
-                RequestRemoveTriangleServerRpc(Mouse.current.position.ReadValue());
-                Debug.Log($"Removed {_shape} at {transform.position}");
-            }
-
-            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
-            {
-                AddVolume();
-                RequestAddVolumeServerRpc(Mouse.current.position.ReadValue());
-                Debug.Log($"Added {_shape} at {transform.position}");
-            }
-
-            if (Time.time - lastCheckObjectInstance > 3)
-            {
-                lastCheckObjectInstance = Time.time;
-
-                for (int i = 0; i < Shape.List.Count; i++)
-                {
-                    if (Shape.IsNear(i, transform.position))
-                    {
-                        GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].Position, Quaternion.identity);
-                        Shape.List[i].IsSpawned = true;
-                        go.Camera = transform;
-                        go.Index = i;
-                    }
-                }
-            }
-
-            for (int i = _pendingRemoves.Count - 1; i >= 0; i--)
-            {
-                var pos = _pendingRemoves[i];
-                var ray = _cam.ScreenPointToRay(pos);
-                if (Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer))
-                {
-                    var mf = hit.collider.GetComponent<MeshFilter>();
-                    var mc = hit.collider.GetComponent<MeshCollider>();
-                    RemoveTriangle(mf.mesh, mc, hit.triangleIndex);
-                    _pendingRemoves.RemoveAt(i);
-                }
-            }
-
-            for (int i = _pendingAdds.Count - 1; i >= 0; i--)
-            {
-                var pos = _pendingAdds[i];
-                var ray = _cam.ScreenPointToRay(pos);
-                if (Physics.Raycast(ray, out var hit, _reachDistance))
-                {
-                    float cellSize = _shapeSize;
-                    Vector3 halfExtents = GetShapeHalfExtents();
-                    Vector3 normal = hit.normal.normalized;
-                    Vector3 targetPoint = hit.point + normal * cellSize;
-                    Vector3Int grid = new(
-                        Mathf.RoundToInt(targetPoint.x / cellSize),
-                        Mathf.RoundToInt(targetPoint.y / cellSize),
-                        Mathf.RoundToInt(targetPoint.z / cellSize)
-                    );
-                    Vector3 targetPosition = GridToWorldPosition(grid, cellSize);
-                    Quaternion rotation = Quaternion.FromToRotation(Vector3.up, normal);
-
-                    bool hasCollision = false;
-                    Collider[] cols = _shape == ShapeType.Cylinder
-                        ? Physics.OverlapCapsule(
-                            targetPosition - rotation * Vector3.up * halfExtents.y,
-                            targetPosition + rotation * Vector3.up * halfExtents.y,
-                            halfExtents.x,
-                            _chunkLayer
-                        )
-                        : Physics.OverlapBox(
-                            targetPosition,
-                            halfExtents,
-                            rotation,
-                            _chunkLayer
-                        );
-                    foreach (var c in cols) if (c != hit.collider) { hasCollision = true; break; }
-
-                    if (!hasCollision)
-                    {
-                        CreateShapeAt(targetPosition, rotation);
-                        _pendingAdds.RemoveAt(i);
-                    }
-                }
-            }
-
             // Cubes
             var cubeList = Shape.List.Where(s => s is Cube).Cast<Cube>().ToList();
             var cubeMats = new Matrix4x4[cubeList.Count];
@@ -169,9 +77,70 @@ namespace Player
                 prismMats[i] = prismList[i].GetMatrix();
             if (prismMats.Length > 0)
                 Graphics.DrawMeshInstanced(_prismMesh, 0, _addMaterial, prismMats);
+
+            if (!IsOwner) return;
+
+            if (Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame)
+            {
+                _shape = (ShapeType)(((int)_shape + 1) % Enum.GetValues(typeof(ShapeType)).Length);
+                Debug.Log($"Current shape: {_shape}");
+            }
+
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                //RemoveTriangle();
+                RequestRemoveTriangleServerRpc(Mouse.current.position.ReadValue());
+                Debug.Log($"Removed {_shape} at {transform.position}");
+            }
+
+            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                //AddVolume();
+                RequestAddVolumeServerRpc(Mouse.current.position.ReadValue());
+                Debug.Log($"Added {_shape} at {transform.position}");
+            }
+
+            if (Time.time - lastCheckObjectInstance > 3)
+            {
+                lastCheckObjectInstance = Time.time;
+
+                for (int i = 0; i < Shape.List.Count; i++)
+                {
+                    if (Shape.IsNear(i, transform.position))
+                    {
+                        GameObjectInstance go = Instantiate(_shapeMeshes[Shape.List[i].GetType()], Shape.List[i].Position, Quaternion.identity);
+                        Spawn(go.gameObject);
+                        Shape.List[i].IsSpawned = true;
+                        go.PlayerCamera = transform;
+                        go.Index = i;
+                    }
+                }
+            }
+
+            for (int i = _pendingRemoves.Count - 1; i >= 0; i--)
+            {
+                var pos = _pendingRemoves[i];
+                var ray = _cam.ScreenPointToRay(pos);
+                if (Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer))
+                {
+                    var mf = hit.collider.GetComponent<MeshFilter>();
+                    var mc = hit.collider.GetComponent<MeshCollider>();
+                    RemoveTriangle(mf.mesh, mc, hit.triangleIndex);
+                    _pendingRemoves.RemoveAt(i);
+                }
+            }
+
+            for (int i = _pendingAdds.Count - 1; i >= 0; i--)
+            {
+                Vector2 pos = _pendingAdds[i];
+                Ray ray = _cam.ScreenPointToRay(pos);
+                if (Physics.Raycast(ray, out var hit, _reachDistance))
+                {
+                    AddVolume();
+                    _pendingAdds.RemoveAt(i);
+                }
+            }
         }
-
-
 
         void RemoveTriangle()
         {
@@ -371,6 +340,12 @@ namespace Player
 
         void CreateShapeAt(Vector3 position, Quaternion rotation)
         {
+            if (!IsServerInitialized)
+            {
+                WorldShapeManager.Instance.AddShapeServerRpc(position, rotation, ShapeType.Cube);
+                return;
+            }
+
             switch (_shape)
             {
                 case ShapeType.Cube:
@@ -397,9 +372,14 @@ namespace Player
 
             ConfigureVolumeObject(go.gameObject, p, r);
 
-            go.Camera = transform;
+            go.PlayerCamera = transform;
             go.Index = Cube.List.Count - 1;
 
+            if (IsServerInitialized)
+            {
+                Spawn(go.gameObject);
+
+            }
             // o - primitive cube
             // p - position
             // r - material
@@ -418,10 +398,15 @@ namespace Player
             new Cylinder(p, r);
 
             GameObjectInstance go = Instantiate(_cylinderGameObject, p, r);
+            ConfigureVolumeObject(go.gameObject, p, r);
 
-            go.Camera = transform;
+            go.PlayerCamera = transform;
             go.Index = Shape.List.Count - 1;
 
+            if (IsServerInitialized)
+            {
+                Spawn(go.gameObject);
+            }
             //o.transform.localScale = new Vector3(_shapeSize, _shapeSize, _shapeSize);
         }
 
@@ -453,8 +438,13 @@ namespace Player
             GameObjectInstance go = Instantiate(_prismGameObject, p, r);
             ConfigureVolumeObject(go.gameObject, p, r);
 
-            go.Camera = transform;
+            go.PlayerCamera = transform;
             go.Index = Shape.List.Count - 1;
+
+            if (IsServerInitialized)
+            {
+                Spawn(go.gameObject);
+            }
         }
 
         void ConfigureVolumeObject(GameObject obj, Vector3 position, Quaternion rotation)
@@ -523,24 +513,22 @@ namespace Player
         [ServerRpc(RequireOwnership = false, RunLocally = true)]
         private void RequestRemoveTriangleServerRpc(Vector2 mousePos)
         {
-            //RemoveTriangle();
+            RemoveTriangle();
             RemoveTriangleObserversRpc(mousePos);
         }
 
         [ObserversRpc(RunLocally = false)]
         private void RemoveTriangleObserversRpc(Vector2 mousePos)
         {
-            if (IsOwner) return;
+            //if (IsOwner) return;
             if (_cam == null)
             {
-                if (_cam == null)
-                {
-                    _pendingRemoves.Add(mousePos);
-                    return;
-                }
+                _pendingRemoves.Add(mousePos);
+                return;
             }
 
             var ray = _cam.ScreenPointToRay(mousePos);
+
             if (!Physics.Raycast(ray, out var hit, _reachDistance, _chunkLayer) || hit.collider == null)
             {
                 _pendingRemoves.Add(mousePos);
@@ -560,6 +548,7 @@ namespace Player
                             o.Index--;
 
                     Destroy(go);
+                    WorldShapeManager.Instance.RemoveShapeServerRpc(inst.Index);
                 }
                 return;
             }
@@ -585,7 +574,7 @@ namespace Player
         [ObserversRpc(RunLocally = false)]
         private void AddVolumeObserversRpc(Vector2 mousePos)
         {
-            if (IsOwner) return;
+            //if (IsOwner) return;
 
             var ray = _cam.ScreenPointToRay(mousePos);
 

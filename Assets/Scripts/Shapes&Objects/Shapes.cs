@@ -14,7 +14,7 @@ public abstract class Shape : IShapeDataInterface
 
     public virtual Matrix4x4 GetMatrix()
     {
-        return  Matrix4x4.TRS(Position, Quaternion.identity, Vector3.one);
+        return Matrix4x4.TRS(Position, Quaternion.identity, Vector3.one);
     }
 
     public static Matrix4x4[] GetMatrixArr<T>() where T : Shape
