@@ -13,7 +13,7 @@ namespace Player
         private Vector3 startSpeed;
         private Vector3 velocity;
 
-        private InputAction _moveAction;
+        private readonly InputAction _moveAction;
 
         public PlayerJumpState(PlayerMovementStateMachine stateMachine, Vector3 StartSpeed) : base(stateMachine) 
         {
