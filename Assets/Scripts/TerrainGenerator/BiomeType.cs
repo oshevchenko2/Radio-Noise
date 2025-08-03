@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace TerrainGenerator
 {
     public enum BiomeType

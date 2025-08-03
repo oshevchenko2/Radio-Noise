@@ -1,8 +1,5 @@
-using DG.Tweening;
-using Unity.Entities.UniversalDelegates;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.EventSystems;
 
 public class Button : MonoBehaviour
 {

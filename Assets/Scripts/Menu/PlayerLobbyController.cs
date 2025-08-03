@@ -1,5 +1,4 @@
 using FishNet.Object;
-using FishNet.Connection;
 using FishNet.Object.Synchronizing;
 using FishNet.CodeGenerating;
 
