@@ -1748,6 +1748,8 @@ MonoBehaviour:
   _mountainsMaterial: {fileID: 2100000, guid: 2a6c63c1bcb7fe44bbc2be083c8a9a6d, type: 2}
   _stoneMaterial: {fileID: 2100000, guid: f1888d1f95dbd7247955beee78a3e849, type: 2}
   _waterMaterial: {fileID: 2100000, guid: 1692d5d1f1c0c334d988e1028f01e295, type: 2}
+  _grassMesh: {fileID: 8254687373856176130, guid: 1bfb0c0dd341ef34f9a7ae0c5d2b0002, type: 3}
+  _grassMaterial: {fileID: 2100000, guid: c937f40d29a843c428f50330ce3aeab8, type: 2}
 --- !u!1652712579 &1310858876
 MultiplayerRolesData:
   m_ObjectHideFlags: 2

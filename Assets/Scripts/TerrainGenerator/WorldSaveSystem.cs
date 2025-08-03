@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.Serialization.Formatters.Binary;
 using FishNet.Object;
-using Unity.Entities;
 using UnityEngine;
 
 namespace TerrainGenerator
