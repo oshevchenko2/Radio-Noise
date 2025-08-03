@@ -1,11 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 using FishNet;
-using FishNet.Managing;
 using FishNet.Connection;
-using FishNet.Object;
 using FishNet.Transporting;
-using FishNet.Object.Synchronizing;
 
 public class LobbyUI : MonoBehaviour
 {

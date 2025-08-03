@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
 
 namespace Player
 {
@@ -26,6 +24,8 @@ namespace Player
         [SerializeField] private GameObjectInstance _cylinderGameObject;
         [SerializeField] private GameObjectInstance _prismGameObject;
 
+        [SerializeField] private float _grassRemovalRadius = 1.5f;
+
         Dictionary<Type, GameObjectInstance> _shapeMeshes = new();
 
         private readonly List<Vector2> _pendingRemoves = new();
@@ -38,6 +38,8 @@ namespace Player
 
         public WorldShapeManager worldShapeManager;
 
+        private Collider[] _colliderBuffer = new Collider[32];
+
         void Start()
         {
             _shapeMeshes.Add(typeof(Cube), _cubeGameObject);
@@ -45,7 +47,7 @@ namespace Player
             _shapeMeshes.Add(typeof(Prism), _prismGameObject); //
 
             if (_prismMesh == null) _prismMesh = GenerateTriangularPrismMesh(_shapeSize, _shapeSize);
-            
+
             if (_cam == null) _cam = GetComponent<Camera>();
 
             _chunkLayerIndex = GetFirstLayerFromMask(_chunkLayer);
@@ -222,6 +224,8 @@ namespace Player
 
             meshCollider.sharedMesh = null;
             meshCollider.sharedMesh = mesh;
+
+            Vector3 center = (oldPositions[0] + oldPositions[1] + oldPositions[2]) / 3f;
         }
 
         int FindSubMeshIndex(Mesh mesh, int triangleIndex)
@@ -259,32 +263,35 @@ namespace Player
             Quaternion rotation = Quaternion.FromToRotation(Vector3.up, normal);
 
             bool hasCollision = false;
-            Collider[] colliders;
+            int collidersCount;
 
             if (_shape == ShapeType.Cylinder)
             {
-                colliders = Physics.OverlapCapsule(
+                collidersCount = Physics.OverlapCapsuleNonAlloc(
                     targetPosition - rotation * Vector3.up * halfExtents.y,
                     targetPosition + rotation * Vector3.up * halfExtents.y,
                     halfExtents.x,
+                    _colliderBuffer,
                     _chunkLayer
                 );
             }
             else
             {
-                colliders = Physics.OverlapBox(
+                collidersCount = Physics.OverlapBoxNonAlloc(
                     targetPosition,
                     halfExtents,
+                    _colliderBuffer,
                     rotation,
                     _chunkLayer
                 );
             }
 
-            foreach (var col in colliders)
+            for (int i = 0; i < collidersCount; i++)
             {
-                if (col != hit.collider)
+                if (_colliderBuffer[i] != hit.collider)
                 {
                     hasCollision = true;
+
                     break;
                 }
             }
@@ -293,7 +300,6 @@ namespace Player
             {
                 CreateShapeAt(targetPosition, rotation);
             }
-
         }
 
         Vector3Int WorldToGridPosition(Vector3 worldPos, float cellSize)
@@ -550,6 +556,7 @@ namespace Player
                     Destroy(go);
                     WorldShapeManager.Instance.RemoveShapeServerRpc(inst.Index);
                 }
+
                 return;
             }
             var mf = hit.collider.GetComponent<MeshFilter>();

@@ -11,8 +11,8 @@ namespace Player
         private readonly float _gravity = 9.81f;
         private CharacterController _controller;
 
-        private InputAction _moveAction;
-        private InputAction _jumpAction;
+        private readonly InputAction _moveAction;
+        private readonly InputAction _jumpAction;
 
         public PlayerGroundedState(PlayerMovementStateMachine stateMachine) : base(stateMachine)
         {

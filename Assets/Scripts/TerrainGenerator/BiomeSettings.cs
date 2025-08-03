@@ -1,8 +1,9 @@
-using UnityEngine;
-
-public class BiomeSettings
+namespace TerrainGenerator
 {
-    public float noiseScale = 0.3f;
-    public float heightMultiplier = 5;
-    public int chunkHeight;
+    public class BiomeSettings
+    {
+        public float noiseScale = 0.3f;
+        public float heightMultiplier = 5;
+        public int chunkHeight;
+    }
 }

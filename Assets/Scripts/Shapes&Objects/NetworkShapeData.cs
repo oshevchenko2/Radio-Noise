@@ -1,6 +1,4 @@
 using System;
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using UnityEngine;
 
 [Serializable] public struct NetworkShapeData

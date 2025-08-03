@@ -1,9 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using FishNet.Object;
-using FishNet.Object.Synchronizing;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameObjectInstance : NetworkBehaviour

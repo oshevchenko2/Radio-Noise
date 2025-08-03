@@ -1,7 +1,5 @@
 using System;
 using Movement;
-using UnityEngine;
-using UnityEditor;
 
 namespace Player
 {

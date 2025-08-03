@@ -62,6 +62,18 @@ namespace TerrainGenerator
         // ToDo: Add more realistic water
         // ToDo: Fix water, coz it appears too low and the height only changes in materials from shader
 
+        [SerializeField] private Mesh _grassMesh;
+        [SerializeField] private Material _grassMaterial;
+
+        private const float _grassDensity = 0.1f;
+        private const float _grassMaxSlopeAngle = 90f;
+        private const int _maxGrassPerChunk = 100;
+
+        private readonly Dictionary<Vector2Int, List<GrassInstance>> _chunkGrassData = new();
+        private readonly Dictionary<Vector3Int, GrassInstance> _allGrassInstances = new();
+
+        // All grass preferences
+
         private Shader _shader;
 
         //Shader 2 Find, if materials above missing
@@ -106,15 +118,15 @@ namespace TerrainGenerator
 
         private Dictionary<Vector2Int, Dictionary<Vector2Int, GameObject>> _chunkWalls = new();
 
-        private ConcurrentQueue<ChunkGenResult> _readyChunks = new();
-        private HashSet<Vector2Int> _generatingChunks = new();
+        private readonly ConcurrentQueue<ChunkGenResult> _readyChunks = new();
+        private readonly HashSet<Vector2Int> _generatingChunks = new();
 
-        private SemaphoreSlim _chunkGenSemaphore = new(8);
+        private readonly SemaphoreSlim _chunkGenSemaphore = new(8);
 
         private const int MaxChunksPerFrame = 3;
 
-        private Dictionary<Vector2Int, InstancedChunkData> _instancedChunks = new();
-        private Dictionary<Vector2Int, ChunkData> _modifiedChunks = new();
+        private readonly Dictionary<Vector2Int, InstancedChunkData> _instancedChunks = new();
+        private readonly Dictionary<Vector2Int, ChunkData> _modifiedChunks = new();
 
         private float _instanceDistance = 128f;
 
@@ -236,6 +248,16 @@ namespace TerrainGenerator
                 topMC = topObj.AddComponent<MeshCollider>();
             }
             topMC.sharedMesh = topMF.mesh;
+
+            GenerateGrassForChunk(
+                chunkCoord: chunkCoord,
+                topMesh: topMF.mesh,
+                dominantBiome0: dominantBiome0,
+                dominantBiome1: dominantBiome1,
+                parent: topObj.transform,
+                worldPosition: chunkObject.transform.position
+            );
+
             yield return null;
         }
 
@@ -588,7 +610,7 @@ namespace TerrainGenerator
                 foreach (var cam in cameras)
                 {
                     Vector3 camPos = cam != null ? cam.transform.position : transform.position;
-                
+
                     float dist = Vector2.Distance(new Vector2(chunkPos.x, chunkPos.z), new Vector2(camPos.x, camPos.z));
 
                     if (dist < minDist) minDist = dist;
@@ -604,7 +626,7 @@ namespace TerrainGenerator
                 Vector3 pos = kvp.Value.matrix.GetColumn(3);
 
                 if (MinDistanceToCameras(pos) < _instanceDistance * 0.8f) toGameObject.Add(kvp.Key);
-            
+
             }
 
             foreach (var kvp in _chunkObjects)
@@ -620,9 +642,9 @@ namespace TerrainGenerator
             foreach (var kvp in _chunkObjects)
             {
                 var go = kvp.Value;
-            
+
                 if (go == null) continue;
-            
+
                 float dist = MinDistanceToCameras(go.transform.position);
 
                 if (go.activeSelf && dist > _instanceDistance)
@@ -694,7 +716,7 @@ namespace TerrainGenerator
                             material = mr.material,
                             matrix = Matrix4x4.TRS(go.transform.position, Quaternion.identity, Vector3.one)
                         };
-                    
+
                         _instancedChunks[coord] = data;
                     }
 
@@ -709,15 +731,15 @@ namespace TerrainGenerator
                 if (_chunkObjects.ContainsKey(result.coord) || _instancedChunks.ContainsKey(result.coord))
                 {
                     _generatingChunks.Remove(result.coord);
-            
+
                     continue;
                 }
-            
+
                 if (_modifiedChunks.TryGetValue(result.coord, out var chunkData))
                 {
                     StartCoroutine(RecreateChunk(result.coord, chunkData));
                     _generatingChunks.Remove(result.coord);
-            
+
                     continue;
                 }
 
@@ -727,17 +749,17 @@ namespace TerrainGenerator
                 {
                     Mesh mesh = GenerateMesh(result.topField);
                     Material mat = GetMaterialForBiome(result.dominantBiome0);
-                
+
                     var data = new InstancedChunkData
                     {
                         mesh = mesh,
                         material = mat,
                         matrix = Matrix4x4.TRS(new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize), Quaternion.identity, Vector3.one)
                     };
-                
+
                     _instancedChunks[result.coord] = data;
                     _generatingChunks.Remove(result.coord);
-                
+
                     continue;
                 }
 
@@ -751,11 +773,11 @@ namespace TerrainGenerator
                 foreach (var dir in directions)
                 {
                     Vector2Int neighborCoord = result.coord + dir;
-                
+
                     if (_chunkWalls.TryGetValue(neighborCoord, out var walls))
                     {
                         Vector2Int oppositeDir = -dir;
-                
+
                         if (walls.TryGetValue(oppositeDir, out var wall))
                         {
                             GameObject.Destroy(wall);
@@ -825,6 +847,15 @@ namespace TerrainGenerator
                 }
                 topMC.sharedMesh = topMF.mesh;
 
+                GenerateGrassForChunk(
+                    chunkCoord: result.coord,
+                    topMesh: topMF.mesh,
+                    dominantBiome0: result.dominantBiome0,
+                    dominantBiome1: result.dominantBiome1,
+                    parent: topObj.transform,
+                    worldPosition: chunkObject.transform.position
+                );
+
                 foreach (var dir in directions)
                 {
                     Vector2Int neighborCoord = result.coord + dir;
@@ -842,6 +873,253 @@ namespace TerrainGenerator
                 if (processed >= MaxChunksPerFrame) break;
             }
         }
+
+        #region Grass
+        private void GenerateGrassForChunk(
+            Vector2Int chunkCoord,
+            Mesh topMesh,
+            BiomeType dominantBiome0,
+            BiomeType dominantBiome1,
+            Transform parent,
+            Vector3 worldPosition)
+        {
+            if (!IsGrassBiome(dominantBiome0) && !IsGrassBiome(dominantBiome1)) return;
+            if (_grassMesh == null || _grassMaterial == null) return;
+
+            // Remove old grass if exists
+            if (_chunkGrassData.ContainsKey(chunkCoord))
+            {
+                RemoveGrassFromChunk(chunkCoord);
+            }
+
+            Vector3[] vertices = topMesh.vertices;
+            Vector3[] normals = topMesh.normals;
+
+            List<GrassInstance> grassInstances = new();
+            List<CombineInstance> combineInstances = new();
+
+            GameObject grassParent = new("Grass");
+            grassParent.transform.SetParent(parent);
+            grassParent.transform.localPosition = Vector3.zero;
+
+            MeshFilter grassFilter = grassParent.AddComponent<MeshFilter>();
+            MeshRenderer grassRenderer = grassParent.AddComponent<MeshRenderer>();
+            grassRenderer.material = _grassMaterial;
+
+            int grassCount = 0;
+            for (int i = 0; i < normals.Length; i++)
+            {
+                if (grassCount >= _maxGrassPerChunk) break;
+
+                float slopeAngle = Vector3.Angle(normals[i], Vector3.up);
+                if (slopeAngle > _grassMaxSlopeAngle) continue;
+
+                if (UnityEngine.Random.value > _grassDensity) continue;
+
+                Vector3 vertex = vertices[i];
+                Vector3 position = worldPosition + vertex;
+
+                // Random variations
+                position.x += UnityEngine.Random.Range(-0.3f, 0.3f);
+                position.z += UnityEngine.Random.Range(-0.3f, 0.3f);
+                
+                Quaternion rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0);
+                float scale = UnityEngine.Random.Range(0.8f, 1.2f);
+                Vector3 scaleVec = new Vector3(scale, scale, scale);
+                Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, scaleVec);
+                
+                // Create instance
+                GrassInstance instance = new()
+                {
+                    Position = position,
+                    Rotation = rotation,
+                    Scale = scaleVec,
+                    Matrix = matrix,
+                    ChunkCoord = chunkCoord
+                };
+
+                // Generate unique key - FIXED VERSION
+                Vector3Int positionKey = Vector3Int.zero; // Initialize with default value
+                bool keyIsUnique = false;
+                int maxAttempts = 5;
+                
+                for (int attempt = 0; attempt < maxAttempts; attempt++)
+                {
+                    positionKey = new Vector3Int(
+                        Mathf.RoundToInt(position.x * 100) + attempt,
+                        Mathf.RoundToInt(position.y * 100),
+                        Mathf.RoundToInt(position.z * 100)
+                    );
+
+                    if (!_allGrassInstances.ContainsKey(positionKey))
+                    {
+                        keyIsUnique = true;
+                        break;
+                    }
+                }
+
+                if (!keyIsUnique) continue;
+
+                // Save instance
+                grassInstances.Add(instance);
+                _allGrassInstances[positionKey] = instance;
+                
+                // For combined mesh
+                combineInstances.Add(new CombineInstance
+                {
+                    mesh = _grassMesh,
+                    transform = matrix
+                });
+
+                grassCount++;
+            }
+
+            // Save grass data
+            _chunkGrassData[chunkCoord] = grassInstances;
+            
+            // Create combined mesh
+            if (combineInstances.Count > 0)
+            {
+                Mesh combinedMesh = new();
+                combinedMesh.CombineMeshes(combineInstances.ToArray(), true);
+                grassFilter.mesh = combinedMesh;
+            }
+            else
+            {
+                Destroy(grassParent);
+            }
+        }
+        public struct GrassInstance
+        {
+            public Vector3 Position;
+            public Quaternion Rotation;
+            public Vector3 Scale;
+            public Matrix4x4 Matrix;
+            public Vector2Int ChunkCoord;
+        }
+
+        private bool IsGrassBiome(BiomeType biome)
+        {
+            return biome switch
+            {
+                BiomeType.Plains or BiomeType.Forest => true,
+                _ => false
+            };
+        }
+        
+        
+        private Dictionary<Vector2Int, List<Vector3Int>> _chunkGrassKeys = new();
+
+        public void RemoveGrassInArea(Vector3 position, float radius)
+        {
+            if (!IsServerInitialized) return;
+            
+            float sqrRadius = radius * radius;
+            HashSet<Vector2Int> affectedChunks = new();
+            List<Vector3Int> keysToRemove = new();
+
+            foreach (var kvp in _allGrassInstances)
+            {
+                float sqrDistance = (kvp.Value.Position - position).sqrMagnitude;
+                if (sqrDistance <= sqrRadius)
+                {
+                    keysToRemove.Add(kvp.Key);
+                    affectedChunks.Add(kvp.Value.ChunkCoord);
+                }
+            }
+
+            foreach (var key in keysToRemove)
+            {
+                if (_allGrassInstances.TryGetValue(key, out GrassInstance instance))
+                {
+                    if (_chunkGrassKeys.TryGetValue(instance.ChunkCoord, out var chunkKeys))
+                    {
+                        chunkKeys.Remove(key);
+                    }
+
+                    _allGrassInstances.Remove(key);
+                }
+            }
+
+            foreach (var chunkCoord in affectedChunks)
+            {
+                if (_chunkObjects.TryGetValue(chunkCoord, out var chunkObj))
+                {
+                    RebuildGrassMesh(chunkCoord);
+                    RebuildGrassMeshObserversRpc(chunkCoord);
+                }
+            }
+        }
+        
+        [ObserversRpc]
+        private void RebuildGrassMeshObserversRpc(Vector2Int chunkCoord)
+        {
+            if (!IsServerInitialized)
+            {
+                RebuildGrassMesh(chunkCoord);
+            }
+        }
+
+        private void RebuildGrassMesh(Vector2Int chunkCoord)
+        {
+            if (!_chunkObjects.TryGetValue(chunkCoord, out var chunkObj)) return;
+            if (!_chunkGrassKeys.TryGetValue(chunkCoord, out var grassKeys)) return;
+
+            Transform grassParent = chunkObj.transform.Find("Grass");
+            if (grassParent == null) return;
+
+            List<CombineInstance> combineInstances = new();
+            
+            foreach (var key in grassKeys)
+            {
+                if (_allGrassInstances.TryGetValue(key, out var instance))
+                {
+                    combineInstances.Add(new CombineInstance
+                    {
+                        mesh = _grassMesh,
+                        transform = instance.Matrix
+                    });
+                }
+            }
+
+            MeshFilter grassFilter = grassParent.GetComponent<MeshFilter>();
+            if (grassFilter == null) return;
+
+            if (combineInstances.Count > 0)
+            {
+                Mesh combinedMesh = new();
+                combinedMesh.CombineMeshes(combineInstances.ToArray(), true);
+                grassFilter.mesh = combinedMesh;
+            }
+            else
+            {
+                Destroy(grassParent.gameObject);
+            }
+        }
+
+        private void RemoveGrassFromChunk(Vector2Int chunkCoord)
+        {
+            if (!_chunkGrassData.TryGetValue(chunkCoord, out var grassInstances)) return;
+            
+            foreach (var instance in grassInstances)
+            {
+                Vector3Int positionKey = new(
+                    Mathf.RoundToInt(instance.Position.x * 10),
+                    Mathf.RoundToInt(instance.Position.y * 10),
+                    Mathf.RoundToInt(instance.Position.z * 10)
+                );
+                _allGrassInstances.Remove(positionKey);
+            }
+
+            if (_chunkObjects.TryGetValue(chunkCoord, out var chunkObj))
+            {
+                Transform grassParent = chunkObj.transform.Find("Grass");
+                if (grassParent != null) Destroy(grassParent.gameObject);
+            }
+
+            _chunkGrassData.Remove(chunkCoord);
+        }
+        #endregion
 
         private void OnRenderObject()
         {
