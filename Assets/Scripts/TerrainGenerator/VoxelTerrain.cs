@@ -62,6 +62,15 @@ namespace TerrainGenerator
         // ToDo: Add more realistic water
         // ToDo: Fix water, coz it appears too low and the height only changes in materials from shader
 
+        [SerializeField] private Mesh _grassMesh;
+        [SerializeField] private Material _grassMaterial;
+
+        private const float _grassDensity = 0.1f;
+        private const float _grassMaxSlopeAngle = 90f;
+        private const int _maxGrassPerChunk = 100;
+
+        // All grass preferences
+
         private Shader _shader;
 
         //Shader 2 Find, if materials above missing
@@ -236,6 +245,15 @@ namespace TerrainGenerator
                 topMC = topObj.AddComponent<MeshCollider>();
             }
             topMC.sharedMesh = topMF.mesh;
+
+            InstantiateGrass(
+                topMesh: topMF.mesh,
+                dominantBiome0: dominantBiome0,
+                dominantBiome1: dominantBiome1,
+                parent: topObj.transform,
+                worldPosition: chunkObject.transform.position
+            );
+
             yield return null;
         }
 
@@ -825,6 +843,14 @@ namespace TerrainGenerator
                 }
                 topMC.sharedMesh = topMF.mesh;
 
+                InstantiateGrass(
+                    topMesh: topMF.mesh,
+                    dominantBiome0: result.dominantBiome0,
+                    dominantBiome1: result.dominantBiome1,
+                    parent: topObj.transform,
+                    worldPosition: chunkObject.transform.position
+                );
+
                 foreach (var dir in directions)
                 {
                     Vector2Int neighborCoord = result.coord + dir;
@@ -841,6 +867,81 @@ namespace TerrainGenerator
 
                 if (processed >= MaxChunksPerFrame) break;
             }
+        }
+
+        private void InstantiateGrass(
+            Mesh topMesh,
+            BiomeType dominantBiome0,
+            BiomeType dominantBiome1,
+            Transform parent,
+            Vector3 worldPosition)
+        {
+            if (!IsGrassBiome(dominantBiome0) && !IsGrassBiome(dominantBiome1)) return;
+            if (_grassMesh == null || _grassMaterial == null) return;
+
+            Vector3[] vertices = topMesh.vertices;
+            Vector3[] normals = topMesh.normals;
+            
+            List<Vector3> suitableVertices = new();
+            for (int i = 0; i < normals.Length; i++)
+            {
+                float slopeAngle = Vector3.Angle(normals[i], Vector3.up);
+                if (slopeAngle <= _grassMaxSlopeAngle)
+                {
+                    suitableVertices.Add(vertices[i]);
+                }
+            }
+
+            if (suitableVertices.Count == 0) return;
+
+            int grassCount = Mathf.Clamp(
+                (int)(suitableVertices.Count * _grassDensity),
+                0,
+                _maxGrassPerChunk
+            );
+
+            GameObject grassParent = new("Grass");
+            grassParent.transform.SetParent(parent);
+            grassParent.transform.localPosition = Vector3.zero;
+
+            MeshFilter grassFilter = grassParent.AddComponent<MeshFilter>();
+            MeshRenderer grassRenderer = grassParent.AddComponent<MeshRenderer>();
+            grassRenderer.material = _grassMaterial;
+
+            Mesh combinedGrassMesh = new();
+            CombineInstance[] combine = new CombineInstance[grassCount];
+            
+            for (int i = 0; i < grassCount; i++)
+            {
+                int randomIndex = UnityEngine.Random.Range(0, suitableVertices.Count);
+                Vector3 vertex = suitableVertices[randomIndex];
+                
+                Vector3 position = worldPosition + vertex;
+                
+                position.x += UnityEngine.Random.Range(-0.3f, 0.3f);
+                position.z += UnityEngine.Random.Range(-0.3f, 0.3f);
+                
+                Quaternion rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0);
+                float scale = UnityEngine.Random.Range(0.8f, 1.2f);
+                Vector3 scaleVec = new(scale, scale, scale);
+                
+                Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, scaleVec);
+
+                combine[i].mesh = _grassMesh;
+                combine[i].transform = matrix;
+            }
+
+            combinedGrassMesh.CombineMeshes(combine, true);
+            grassFilter.mesh = combinedGrassMesh;
+        }
+
+        private bool IsGrassBiome(BiomeType biome)
+        {
+            return biome switch
+            {
+                BiomeType.Plains or BiomeType.Forest => true,
+                _ => false
+            };
         }
 
         private void OnRenderObject()

@@ -9,6 +9,7 @@ namespace TerrainGenerator
         public float[,,] caveField;
         public float[,,] stoneField;
         public float[,,] topField;
+        public float[,,] grassField;
         public BiomeType dominantBiome0;
         public BiomeType dominantBiome1;
     }
