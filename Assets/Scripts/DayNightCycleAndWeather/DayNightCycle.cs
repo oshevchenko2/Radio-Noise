@@ -6,12 +6,9 @@ public class DayNightCycle : MonoBehaviour
 {
     [SerializeField] private Light _mainLight;
     [SerializeField] private Volume _skyVolume;
-
-    private Exposure _exposure;
-
+    
     [SerializeField, Range(0, 24)] private float _timeOfDay = 12f;
     [SerializeField] private float _dayDurationInMinutes = 10f;
-
     [SerializeField] private float _maxSunIntensity = 120000f;
     [SerializeField] private float _minMoonIntensity = 0.2f;
 
@@ -19,6 +16,8 @@ public class DayNightCycle : MonoBehaviour
     [SerializeField] private AnimationCurve _exposureCurve = AnimationCurve.Linear(0f, -4f, 1f, 1f);
     
     [SerializeField] private Gradient _lightColor;
+
+    private Exposure _exposure;
 
     void Start()
     {

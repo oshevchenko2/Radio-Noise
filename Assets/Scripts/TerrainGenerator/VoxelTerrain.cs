@@ -925,7 +925,7 @@ namespace TerrainGenerator
                 
                 Quaternion rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0);
                 float scale = UnityEngine.Random.Range(0.8f, 1.2f);
-                Vector3 scaleVec = new Vector3(scale, scale, scale);
+                Vector3 scaleVec = new(scale, scale, scale);
                 Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, scaleVec);
                 
                 // Create instance
@@ -938,8 +938,7 @@ namespace TerrainGenerator
                     ChunkCoord = chunkCoord
                 };
 
-                // Generate unique key - FIXED VERSION
-                Vector3Int positionKey = Vector3Int.zero; // Initialize with default value
+                Vector3Int positionKey = Vector3Int.zero;
                 bool keyIsUnique = false;
                 int maxAttempts = 5;
                 
@@ -954,6 +953,7 @@ namespace TerrainGenerator
                     if (!_allGrassInstances.ContainsKey(positionKey))
                     {
                         keyIsUnique = true;
+
                         break;
                     }
                 }
@@ -989,6 +989,7 @@ namespace TerrainGenerator
                 Destroy(grassParent);
             }
         }
+
         public struct GrassInstance
         {
             public Vector3 Position;
@@ -1006,7 +1007,6 @@ namespace TerrainGenerator
                 _ => false
             };
         }
-        
         
         private Dictionary<Vector2Int, List<Vector3Int>> _chunkGrassKeys = new();
 
@@ -1375,15 +1375,6 @@ namespace TerrainGenerator
             }
             return new Mesh();
             // if the queue is empty, create a new Mesh()
-        }
-
-        // Unused, but it better be here, just in case
-        private void ReleaseMeshToPool(Mesh mesh)
-        {
-            mesh.Clear();
-            // Remove all vertices/triangles, freeing buffers inside the mesh.
-            _meshPool.Enqueue(mesh);
-            // Return the mesh back to the pool so that it can be reused.
         }
 
         Mesh GenerateMesh(float[,,] densityField)
