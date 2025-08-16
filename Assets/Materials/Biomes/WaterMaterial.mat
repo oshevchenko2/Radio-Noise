@@ -370,8 +370,8 @@ Material:
     - _ZTestTransparent: 4
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.42741895, g: 0.5257802, b: 0.6528301, a: 0.30588236}
-    - _Color: {r: 0.42741892, g: 0.52578014, b: 0.6528301, a: 0.30588236}
+    - _BaseColor: {r: 0.42331788, g: 0.6563876, b: 0.9547169, a: 0.30588236}
+    - _Color: {r: 0.42331785, g: 0.6563876, b: 0.95471686, a: 0.30588236}
     - _DeepWaterColor: {r: 0.09703799, g: 0.114981286, b: 0.22264135, a: 0.5803922}
     - _DiffusionProfileAsset: {r: 0, g: 0, b: 0, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
@@ -386,7 +386,7 @@ Material:
     - _ThicknessRemap: {r: 0, g: 1, b: 0, a: 0}
     - _TransmittanceColor: {r: 1, g: 1, b: 1, a: 1}
     - _UVDetailsMappingMask: {r: 1, g: 0, b: 0, a: 0}
-    - _UVMappingMask: {r: 1, g: 0, b: 0, a: 0}
+    - _UVMappingMask: {r: 0, g: 0, b: 0, a: 0}
     - _UVMappingMaskEmissive: {r: 1, g: 0, b: 0, a: 0}
     - _UnlitColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

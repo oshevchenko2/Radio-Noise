@@ -1,4 +1,5 @@
 using System;
+using UnityEngine.ProBuilder;
 
 namespace Movement
 {
@@ -7,10 +8,7 @@ namespace Movement
     {
         protected PlayerMovementStateMachine stateMachine;
 
-        public PlayerMovementState(PlayerMovementStateMachine stateMachine)
-        {
-            this.stateMachine = stateMachine;
-        }
+        public PlayerMovementState(PlayerMovementStateMachine stateMachine) => this.stateMachine = stateMachine;
 
         protected bool IsOwner => stateMachine.IsOwner;
 

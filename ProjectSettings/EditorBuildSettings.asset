@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/Levels/MainLevel.unity
     guid: 8124e5870f4fd4c779e7a5f994e84ad1
   - enabled: 1
-    path: Assets/DebugLevels/DebugMovement.unity
+    path: Assets/DebugLevels/DebugLevel.unity
     guid: 03256fb90d1d0cc438ec0ce4aecff800
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: c9cf17f819f9fb94cbf39e679d26bab2, type: 2}
