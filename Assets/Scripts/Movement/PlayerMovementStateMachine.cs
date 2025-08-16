@@ -9,7 +9,7 @@ namespace Movement
     {
         public PlayerMovementState CurrentState { get; private set; }
         [SerializeField] private PlayerMovementStack _stack;
-        private PlayerMovementState _previousState;
+        private readonly PlayerMovementState _previousState;
 
         private void Update()
         {

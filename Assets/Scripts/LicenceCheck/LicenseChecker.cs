@@ -9,7 +9,9 @@ public class LicenseChecker : MonoBehaviour
     void Awake()
     {
         string path = Application.streamingAssetsPath;
+
         int result = CheckLicense(path);
+
         if (result == 0)
         {
             Debug.LogError("License not found. This may be a stolen game, game bug or fork that vioaltes MIT license terms");

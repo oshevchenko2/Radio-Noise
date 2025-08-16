@@ -30,6 +30,7 @@ namespace Player
             }
 
             Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
 
         private void Update()
