@@ -1752,9 +1752,12 @@ MonoBehaviour:
   _grassMesh: {fileID: 8254687373856176130, guid: 1bfb0c0dd341ef34f9a7ae0c5d2b0002, type: 3}
   _grassMaterial: {fileID: 2100000, guid: c937f40d29a843c428f50330ce3aeab8, type: 2}
   _treePrefabs:
-  - {fileID: 7686264170982096908, guid: e20139e79ed4b194db9ada8db00884d7, type: 3}
-  - {fileID: 4887503718510121109, guid: 46a15a989f44a3049a6f415b76c8147a, type: 3}
-  - {fileID: 6401621307345836589, guid: 767fb5f65d5fbb048a9d8df073928198, type: 3}
+  - TreePrefab: {fileID: 6401621307345836589, guid: 767fb5f65d5fbb048a9d8df073928198, type: 3}
+    SpawnProbability: 5
+  - TreePrefab: {fileID: 4887503718510121109, guid: 46a15a989f44a3049a6f415b76c8147a, type: 3}
+    SpawnProbability: 5
+  - TreePrefab: {fileID: 7686264170982096908, guid: e20139e79ed4b194db9ada8db00884d7, type: 3}
+    SpawnProbability: 5
 --- !u!1652712579 &1310858876
 MultiplayerRolesData:
   m_ObjectHideFlags: 2

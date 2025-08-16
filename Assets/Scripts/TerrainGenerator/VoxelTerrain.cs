@@ -77,13 +77,12 @@ namespace TerrainGenerator
 
         [SerializeField] private TreePrefabData[] _treePrefabs;
 
-        private const float _treeDensity = 0.05f;
-        private const float _treeMaxSlopeAngle = 30f;
+        private const float _treeDensity = 0.01f;
+        private const float _treeMaxSlopeAngle = 90f;
 
-        private const int _maxTreesPerChunk = 4;
+        private const int _maxTreesPerChunk = 30;
 
-        private Dictionary<Vector2Int, List<Matrix4x4>> _chunkTreeMatrices = new();
-        private Dictionary<Material, List<CombineInstance>> _treeCombineInstances = new();
+        private Dictionary<Vector2Int, List<GameObject>> _chunkTreeInstances = new();
 
         // All tree preferences
 
@@ -276,7 +275,8 @@ namespace TerrainGenerator
                 topMesh: topMF.mesh,
                 dominantBiome0: dominantBiome0,
                 dominantBiome1: dominantBiome1,
-                parent: topObj.transform
+                parent: topObj.transform,
+                worldPosition: chunkObject.transform.position
             );
 
             yield return null;
@@ -399,15 +399,15 @@ namespace TerrainGenerator
 
                                 _readyChunks.Enqueue(new ChunkGenResult
                                 {
-                                    coord = coord,
+                                    Coord = coord,
                                 
-                                    bottomField = bottomField,
-                                    caveField = caveField,
-                                    stoneField = stoneField,
-                                    topField = topField,
+                                    BottomField = bottomField,
+                                    CaveField = caveField,
+                                    StoneField = stoneField,
+                                    TopField = topField,
                                 
-                                    dominantBiome0 = dominantBiome0,
-                                    dominantBiome1 = dominantBiome1
+                                    DominantBiome0 = dominantBiome0,
+                                    DominantBiome1 = dominantBiome1
                                 });
                             }
                             finally
@@ -582,15 +582,15 @@ namespace TerrainGenerator
 
                         _readyChunks.Enqueue(new ChunkGenResult
                         {
-                            coord = coord,
+                            Coord = coord,
 
-                            bottomField = bottomField,
-                            caveField = caveField,
-                            stoneField = stoneField,
-                            topField = topField,
+                            BottomField = bottomField,
+                            CaveField = caveField,
+                            StoneField = stoneField,
+                            TopField = topField,
 
-                            dominantBiome0 = dominantBiome0,
-                            dominantBiome1 = dominantBiome1
+                            DominantBiome0 = dominantBiome0,
+                            DominantBiome1 = dominantBiome1
                         });
                     }
                     finally
@@ -749,37 +749,37 @@ namespace TerrainGenerator
 
             while (_readyChunks.TryDequeue(out var result))
             {
-                if (_chunkObjects.ContainsKey(result.coord) || _instancedChunks.ContainsKey(result.coord))
+                if (_chunkObjects.ContainsKey(result.Coord) || _instancedChunks.ContainsKey(result.Coord))
                 {
-                    _generatingChunks.Remove(result.coord);
+                    _generatingChunks.Remove(result.Coord);
 
                     continue;
                 }
 
-                if (_modifiedChunks.TryGetValue(result.coord, out var chunkData))
+                if (_modifiedChunks.TryGetValue(result.Coord, out var chunkData))
                 {
-                    StartCoroutine(RecreateChunk(result.coord, chunkData));
-                    _generatingChunks.Remove(result.coord);
+                    StartCoroutine(RecreateChunk(result.Coord, chunkData));
+                    _generatingChunks.Remove(result.Coord);
 
                     continue;
                 }
 
-                float dist = MinDistanceToCameras(new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize));
+                float dist = MinDistanceToCameras(new Vector3(result.Coord.x * _chunkSize, 0, result.Coord.y * _chunkSize));
 
                 if (dist > _instanceDistance)
                 {
-                    Mesh mesh = GenerateMesh(result.topField);
-                    Material mat = GetMaterialForBiome(result.dominantBiome0);
+                    Mesh mesh = GenerateMesh(result.TopField);
+                    Material mat = GetMaterialForBiome(result.DominantBiome0);
 
                     var data = new InstancedChunkData
                     {
                         mesh = mesh,
                         material = mat,
-                        matrix = Matrix4x4.TRS(new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize), Quaternion.identity, Vector3.one)
+                        matrix = Matrix4x4.TRS(new Vector3(result.Coord.x * _chunkSize, 0, result.Coord.y * _chunkSize), Quaternion.identity, Vector3.one)
                     };
 
-                    _instancedChunks[result.coord] = data;
-                    _generatingChunks.Remove(result.coord);
+                    _instancedChunks[result.Coord] = data;
+                    _generatingChunks.Remove(result.Coord);
 
                     continue;
                 }
@@ -787,13 +787,13 @@ namespace TerrainGenerator
                 Vector2Int[] directions = new Vector2Int[] { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down };
 
                 int layerId = LayerMask.NameToLayer("Chunk");
-                GameObject chunkObject = new($"Chunk_{result.coord.x}_{result.coord.y}");
-                chunkObject.transform.position = new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize);
-                _chunkObjects[result.coord] = chunkObject;
+                GameObject chunkObject = new($"Chunk_{result.Coord.x}_{result.Coord.y}");
+                chunkObject.transform.position = new Vector3(result.Coord.x * _chunkSize, 0, result.Coord.y * _chunkSize);
+                _chunkObjects[result.Coord] = chunkObject;
 
                 foreach (var dir in directions)
                 {
-                    Vector2Int neighborCoord = result.coord + dir;
+                    Vector2Int neighborCoord = result.Coord + dir;
 
                     if (_chunkWalls.TryGetValue(neighborCoord, out var walls))
                     {
@@ -814,7 +814,7 @@ namespace TerrainGenerator
                 MeshRenderer bottomRend = bottomObj.AddComponent<MeshRenderer>();
                 bottomRend.material = _stoneMaterial;
                 MeshFilter bottomMF = bottomObj.AddComponent<MeshFilter>();
-                bottomMF.mesh = GenerateMesh(result.bottomField);
+                bottomMF.mesh = GenerateMesh(result.BottomField);
                 MeshCollider bottomMC = bottomObj.AddComponent<MeshCollider>();
 
                 // Cave
@@ -824,7 +824,7 @@ namespace TerrainGenerator
                 MeshRenderer caveRend = caveObj.AddComponent<MeshRenderer>();
                 caveRend.material = _stoneMaterial;
                 MeshFilter caveMF = caveObj.AddComponent<MeshFilter>();
-                caveMF.mesh = GenerateMesh(result.caveField);
+                caveMF.mesh = GenerateMesh(result.CaveField);
                 MeshCollider caveMC = caveObj.AddComponent<MeshCollider>();
                 caveObj.layer = layerId;
 
@@ -835,7 +835,7 @@ namespace TerrainGenerator
                 var stoneRend = stoneObj.AddComponent<MeshRenderer>();
                 stoneRend.material = _stoneMaterial;
                 var stoneMF = stoneObj.AddComponent<MeshFilter>();
-                stoneMF.mesh = GenerateMesh(result.stoneField);
+                stoneMF.mesh = GenerateMesh(result.StoneField);
                 var stoneMC = stoneObj.AddComponent<MeshCollider>();
                 stoneObj.layer = layerId;
 
@@ -846,18 +846,18 @@ namespace TerrainGenerator
                 MeshRenderer topRend = topObj.AddComponent<MeshRenderer>();
                 MeshFilter topMF = topObj.AddComponent<MeshFilter>();
 
-                if (result.dominantBiome0 == result.dominantBiome1)
+                if (result.DominantBiome0 == result.DominantBiome1)
                 {
-                    topRend.material = GetMaterialForBiome(result.dominantBiome0);
-                    topMF.mesh = GenerateConnectedTopMesh(result.topField);
+                    topRend.material = GetMaterialForBiome(result.DominantBiome0);
+                    topMF.mesh = GenerateConnectedTopMesh(result.TopField);
                 }
 
                 else
                 {
-                    Material mat0 = GetMaterialForBiome(result.dominantBiome0);
-                    Material mat1 = GetMaterialForBiome(result.dominantBiome1);
+                    Material mat0 = GetMaterialForBiome(result.DominantBiome0);
+                    Material mat1 = GetMaterialForBiome(result.DominantBiome1);
                     topRend.materials = new Material[] { mat0, mat1 };
-                    topMF.mesh = GenerateMeshWithTwoMaterials(result.topField, new Vector3(result.coord.x * _chunkSize, 0, result.coord.y * _chunkSize), result.dominantBiome0, result.dominantBiome1);
+                    topMF.mesh = GenerateMeshWithTwoMaterials(result.TopField, new Vector3(result.Coord.x * _chunkSize, 0, result.Coord.y * _chunkSize), result.DominantBiome0, result.DominantBiome1);
                 }
 
                 topObj.layer = layerId;
@@ -868,34 +868,35 @@ namespace TerrainGenerator
                 }
                 topMC.sharedMesh = topMF.mesh;
 
-                GenerateGrassForChunk(
-                    chunkCoord: result.coord,
+                GenerateTreesForChunk(
+                    chunkCoord: result.Coord,
                     topMesh: topMF.mesh,
-                    dominantBiome0: result.dominantBiome0,
-                    dominantBiome1: result.dominantBiome1,
+                    dominantBiome0: result.DominantBiome0,
+                    dominantBiome1: result.DominantBiome1,
                     parent: topObj.transform,
                     worldPosition: chunkObject.transform.position
                 );
 
-                GenerateTreesForChunk(
-                    chunkCoord: result.coord,
+                GenerateGrassForChunk(
+                    chunkCoord: result.Coord,
                     topMesh: topMF.mesh,
-                    dominantBiome0: result.dominantBiome0,
-                    dominantBiome1: result.dominantBiome1,
-                    parent: topObj.transform
+                    dominantBiome0: result.DominantBiome0,
+                    dominantBiome1: result.DominantBiome1,
+                    parent: topObj.transform,
+                    worldPosition: chunkObject.transform.position
                 );
 
                 foreach (var dir in directions)
                 {
-                    Vector2Int neighborCoord = result.coord + dir;
+                    Vector2Int neighborCoord = result.Coord + dir;
 
                     if (!_chunkObjects.ContainsKey(neighborCoord))
                     {
-                        CreateChunkWall(result.coord, dir, chunkObject);
+                        CreateChunkWall(result.Coord, dir, chunkObject);
                     }
                 }
 
-                _generatingChunks.Remove(result.coord);
+                _generatingChunks.Remove(result.Coord);
 
                 processed++;
 
@@ -1156,18 +1157,34 @@ namespace TerrainGenerator
             Mesh topMesh,
             BiomeType dominantBiome0,
             BiomeType dominantBiome1,
-            Transform parent)
+            Transform parent,
+            Vector3 worldPosition)
         {
-            // Only generate trees in appropriate biomes
-            if (!IsTreeBiome(dominantBiome0) && !IsTreeBiome(dominantBiome1)) return;
-            if (_treePrefabs == null || _treePrefabs.Length == 0) return;
+            Debug.Log($"Generating trees for chunk {chunkCoord}");
 
-            // Remove old trees if exist
-            RemoveTreesFromChunk(chunkCoord);
+            if (!IsTreeBiome(dominantBiome0) && !IsTreeBiome(dominantBiome1))
+            {
+                Debug.Log($"Skipped - not tree biome: {dominantBiome0}/{dominantBiome1}");
+                return;
+            }
+            if (_treePrefabs == null || _treePrefabs.Length == 0)
+            {
+                Debug.LogError("Tree prefabs not assigned!");
+                return;
+            }
+            if (_chunkTreeInstances.ContainsKey(chunkCoord))
+            {
+                RemoveTreesFromChunk(chunkCoord);
+            }
 
             Vector3[] vertices = topMesh.vertices;
             Vector3[] normals = topMesh.normals;
-            _treeCombineInstances = new Dictionary<Material, List<CombineInstance>>();
+
+            List<GameObject> treeInstances = new();
+
+            GameObject treesParent = new("Trees");
+            treesParent.transform.SetParent(parent);
+            treesParent.transform.localPosition = Vector3.zero;
 
             int treeCount = 0;
             for (int i = 0; i < vertices.Length && treeCount < _maxTreesPerChunk; i++)
@@ -1178,64 +1195,31 @@ namespace TerrainGenerator
                 
                 if (UnityEngine.Random.value > _treeDensity) continue;
 
-                Vector3 position = parent.position + vertices[i];
-                position.x += UnityEngine.Random.Range(-1f, 1f);
-                position.z += UnityEngine.Random.Range(-1f, 1f);
+                Vector3 position = worldPosition + vertices[i];
+                position.y += 0.2f;
+                
+                TreePrefabData treeData = GetRandomTreeType();
+                GameObject treePrefab = treeData.TreePrefab;
+                
+                if (treePrefab == null) continue;
 
-                TreePrefabData selectedType = GetRandomTreeType();
-                if (selectedType.TreePrefab == null) continue;
+                GameObject treeInstance = Instantiate(
+                    treePrefab,
+                    position,
+                    Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0),
+                    treesParent.transform
+                );
 
-                // FIXED: Get all mesh filters in prefab including children
-                MeshFilter[] meshFilters = selectedType.TreePrefab.GetComponentsInChildren<MeshFilter>();
-                if (meshFilters.Length == 0) continue;
-
-                foreach (var mf in meshFilters)
-                {
-                    if (mf.sharedMesh == null) continue;
-                    
-                    var mr = mf.GetComponent<MeshRenderer>();
-                    if (mr == null || mr.sharedMaterial == null) continue;
-                    
-                    Material material = mr.sharedMaterial;
-
-                    if (!_treeCombineInstances.ContainsKey(material))
-                        _treeCombineInstances[material] = new List<CombineInstance>();
-
-                    float scale = UnityEngine.Random.Range(0.8f, 1.2f);
-                    Quaternion rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0);
-                    Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, Vector3.one * scale);
-
-                    _treeCombineInstances[material].Add(new CombineInstance
-                    {
-                        mesh = mf.sharedMesh,
-                        transform = matrix
-                    });
-                }
+                float scale = UnityEngine.Random.Range(0.8f, 1.2f);
+                treeInstance.transform.localScale = Vector3.one * scale;
+                
+                treeInstances.Add(treeInstance);
                 treeCount++;
             }
 
-            if (_treeCombineInstances.Count == 0) return;
-
-            GameObject treesParent = new("Trees");
-            treesParent.transform.SetParent(parent);
-            treesParent.transform.localPosition = Vector3.zero;
-
-            foreach (var kvp in _treeCombineInstances)
-            {
-                if (kvp.Value.Count == 0) continue;
-
-                GameObject subMesh = new("TreeSubMesh");
-                subMesh.transform.SetParent(treesParent.transform);
-                
-                MeshFilter mf = subMesh.AddComponent<MeshFilter>();
-                MeshRenderer mr = subMesh.AddComponent<MeshRenderer>();
-                mr.material = kvp.Key;
-
-                Mesh combinedMesh = new Mesh();
-                combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-                combinedMesh.CombineMeshes(kvp.Value.ToArray(), true);
-                mf.mesh = combinedMesh;
-            }
+            _chunkTreeInstances[chunkCoord] = treeInstances;
+    
+            Debug.Log($"Spawned {treeCount} trees in chunk {chunkCoord}");
         }
 
         private TreePrefabData GetRandomTreeType()
