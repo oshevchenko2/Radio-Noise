@@ -1169,7 +1169,8 @@ PrefabInstance:
       value: 2147483647
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 1312352247, guid: 0b650fca685f2eb41a86538aa883e4c1, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0b650fca685f2eb41a86538aa883e4c1, type: 3}
@@ -1750,6 +1751,10 @@ MonoBehaviour:
   _waterMaterial: {fileID: 2100000, guid: 1692d5d1f1c0c334d988e1028f01e295, type: 2}
   _grassMesh: {fileID: 8254687373856176130, guid: 1bfb0c0dd341ef34f9a7ae0c5d2b0002, type: 3}
   _grassMaterial: {fileID: 2100000, guid: c937f40d29a843c428f50330ce3aeab8, type: 2}
+  _treePrefabs:
+  - {fileID: 7686264170982096908, guid: e20139e79ed4b194db9ada8db00884d7, type: 3}
+  - {fileID: 4887503718510121109, guid: 46a15a989f44a3049a6f415b76c8147a, type: 3}
+  - {fileID: 6401621307345836589, guid: 767fb5f65d5fbb048a9d8df073928198, type: 3}
 --- !u!1652712579 &1310858876
 MultiplayerRolesData:
   m_ObjectHideFlags: 2

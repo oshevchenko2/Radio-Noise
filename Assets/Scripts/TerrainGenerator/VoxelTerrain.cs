@@ -67,12 +67,25 @@ namespace TerrainGenerator
 
         private const float _grassDensity = 0.1f;
         private const float _grassMaxSlopeAngle = 90f;
+
         private const int _maxGrassPerChunk = 100;
 
         private readonly Dictionary<Vector2Int, List<GrassInstance>> _chunkGrassData = new();
         private readonly Dictionary<Vector3Int, GrassInstance> _allGrassInstances = new();
 
         // All grass preferences
+
+        [SerializeField] private TreePrefabData[] _treePrefabs;
+
+        private const float _treeDensity = 0.05f;
+        private const float _treeMaxSlopeAngle = 30f;
+
+        private const int _maxTreesPerChunk = 4;
+
+        private Dictionary<Vector2Int, List<Matrix4x4>> _chunkTreeMatrices = new();
+        private Dictionary<Material, List<CombineInstance>> _treeCombineInstances = new();
+
+        // All tree preferences
 
         private Shader _shader;
 
@@ -256,6 +269,14 @@ namespace TerrainGenerator
                 dominantBiome1: dominantBiome1,
                 parent: topObj.transform,
                 worldPosition: chunkObject.transform.position
+            );
+
+            GenerateTreesForChunk(
+                chunkCoord: chunkCoord,
+                topMesh: topMF.mesh,
+                dominantBiome0: dominantBiome0,
+                dominantBiome1: dominantBiome1,
+                parent: topObj.transform
             );
 
             yield return null;
@@ -856,6 +877,14 @@ namespace TerrainGenerator
                     worldPosition: chunkObject.transform.position
                 );
 
+                GenerateTreesForChunk(
+                    chunkCoord: result.coord,
+                    topMesh: topMF.mesh,
+                    dominantBiome0: result.dominantBiome0,
+                    dominantBiome1: result.dominantBiome1,
+                    parent: topObj.transform
+                );
+
                 foreach (var dir in directions)
                 {
                     Vector2Int neighborCoord = result.coord + dir;
@@ -1120,7 +1149,127 @@ namespace TerrainGenerator
             _chunkGrassData.Remove(chunkCoord);
         }
         #endregion
+        #region Trees
 
+        private void GenerateTreesForChunk(
+            Vector2Int chunkCoord, 
+            Mesh topMesh,
+            BiomeType dominantBiome0,
+            BiomeType dominantBiome1,
+            Transform parent)
+        {
+            // Only generate trees in appropriate biomes
+            if (!IsTreeBiome(dominantBiome0) && !IsTreeBiome(dominantBiome1)) return;
+            if (_treePrefabs == null || _treePrefabs.Length == 0) return;
+
+            // Remove old trees if exist
+            RemoveTreesFromChunk(chunkCoord);
+
+            Vector3[] vertices = topMesh.vertices;
+            Vector3[] normals = topMesh.normals;
+            _treeCombineInstances = new Dictionary<Material, List<CombineInstance>>();
+
+            int treeCount = 0;
+            for (int i = 0; i < vertices.Length && treeCount < _maxTreesPerChunk; i++)
+            {
+                Vector3 normal = normals[i];
+                float slopeAngle = Vector3.Angle(normal, Vector3.up);
+                if (slopeAngle > _treeMaxSlopeAngle) continue;
+                
+                if (UnityEngine.Random.value > _treeDensity) continue;
+
+                Vector3 position = parent.position + vertices[i];
+                position.x += UnityEngine.Random.Range(-1f, 1f);
+                position.z += UnityEngine.Random.Range(-1f, 1f);
+
+                TreePrefabData selectedType = GetRandomTreeType();
+                if (selectedType.TreePrefab == null) continue;
+
+                // FIXED: Get all mesh filters in prefab including children
+                MeshFilter[] meshFilters = selectedType.TreePrefab.GetComponentsInChildren<MeshFilter>();
+                if (meshFilters.Length == 0) continue;
+
+                foreach (var mf in meshFilters)
+                {
+                    if (mf.sharedMesh == null) continue;
+                    
+                    var mr = mf.GetComponent<MeshRenderer>();
+                    if (mr == null || mr.sharedMaterial == null) continue;
+                    
+                    Material material = mr.sharedMaterial;
+
+                    if (!_treeCombineInstances.ContainsKey(material))
+                        _treeCombineInstances[material] = new List<CombineInstance>();
+
+                    float scale = UnityEngine.Random.Range(0.8f, 1.2f);
+                    Quaternion rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0);
+                    Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, Vector3.one * scale);
+
+                    _treeCombineInstances[material].Add(new CombineInstance
+                    {
+                        mesh = mf.sharedMesh,
+                        transform = matrix
+                    });
+                }
+                treeCount++;
+            }
+
+            if (_treeCombineInstances.Count == 0) return;
+
+            GameObject treesParent = new("Trees");
+            treesParent.transform.SetParent(parent);
+            treesParent.transform.localPosition = Vector3.zero;
+
+            foreach (var kvp in _treeCombineInstances)
+            {
+                if (kvp.Value.Count == 0) continue;
+
+                GameObject subMesh = new("TreeSubMesh");
+                subMesh.transform.SetParent(treesParent.transform);
+                
+                MeshFilter mf = subMesh.AddComponent<MeshFilter>();
+                MeshRenderer mr = subMesh.AddComponent<MeshRenderer>();
+                mr.material = kvp.Key;
+
+                Mesh combinedMesh = new Mesh();
+                combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+                combinedMesh.CombineMeshes(kvp.Value.ToArray(), true);
+                mf.mesh = combinedMesh;
+            }
+        }
+
+        private TreePrefabData GetRandomTreeType()
+        {
+            float totalProbability = _treePrefabs.Sum(t => t.SpawnProbability);
+            float randomPoint = UnityEngine.Random.value * totalProbability;
+
+            float currentProbability = 0f;
+            foreach (var type in _treePrefabs)
+            {
+                currentProbability += type.SpawnProbability;
+                if (randomPoint <= currentProbability)
+                    return type;
+            }
+
+            return _treePrefabs[0];
+        }
+
+        private void RemoveTreesFromChunk(Vector2Int chunkCoord)
+        {
+            if (_chunkObjects.TryGetValue(chunkCoord, out var chunkObj))
+            {
+                Transform treesParent = chunkObj.transform.Find("Trees");
+                if (treesParent != null)
+                    Destroy(treesParent.gameObject);
+            }
+        }
+
+        private bool IsTreeBiome(BiomeType biome)
+        {
+            return biome == BiomeType.Forest || biome == BiomeType.Plains;
+        }
+
+        #endregion
         private void OnRenderObject()
         {
             foreach (var kvp in _instancedChunks)
