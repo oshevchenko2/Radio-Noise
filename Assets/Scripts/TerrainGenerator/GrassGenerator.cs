@@ -12,9 +12,7 @@ namespace TerrainGenerator
 
         private const float _grassDensity = 0.1f;
         private const float _grassMaxSlopeAngle = 90f;
-        private const float _minGrassDistance = 0.5f;
         private const int _maxGrassPerChunk = 100;
-        private const float _maxPositionDistanceFromChunk = 200f;
 
         private readonly Dictionary<Vector2Int, List<GrassInstance>> _chunkGrassData = new();
         private readonly Dictionary<Vector3Int, GrassInstance> _allGrassInstances = new();
@@ -23,6 +21,15 @@ namespace TerrainGenerator
         private static GrassGenerator _instance;
 
         void Awake() => _instance = this;
+
+        private static Vector3Int GetPositionKey(Vector3 pos, int offset = 0)
+        {
+            return new Vector3Int(
+                Mathf.RoundToInt(pos.x * 100) + offset,
+                Mathf.RoundToInt(pos.y * 100),
+                Mathf.RoundToInt(pos.z * 100)
+            );
+        }
 
         public static void GenerateGrassForChunk(
             Vector2Int chunkCoord,
@@ -36,114 +43,75 @@ namespace TerrainGenerator
             if (_instance._grassMesh == null || _instance._grassMaterial == null) return;
 
             if (_instance._chunkGrassData.ContainsKey(chunkCoord))
+            {
                 RemoveGrassFromChunk(chunkCoord);
+            }
 
             Vector3[] vertices = topMesh.vertices;
             Vector3[] normals = topMesh.normals;
 
             List<GrassInstance> grassInstances = new();
             List<CombineInstance> combineInstances = new();
-            GameObject grassParent = new GameObject("Grass");
+            List<Vector3Int> grassKeys = new();
+
+            GameObject grassParent = new("Grass");
             grassParent.transform.SetParent(parent);
-            grassParent.transform.position = worldPosition;
+            grassParent.transform.localPosition = Vector3.zero;
 
             MeshFilter grassFilter = grassParent.AddComponent<MeshFilter>();
             MeshRenderer grassRenderer = grassParent.AddComponent<MeshRenderer>();
             grassRenderer.material = _instance._grassMaterial;
 
-            Transform chunkTransform = null;
-            if (VoxelTerrain.ChunkObjects.TryGetValue(chunkCoord, out var chunkObj))
-                chunkTransform = chunkObj.transform;
-
-            List<Vector3> placedPositions = new();
             int grassCount = 0;
-
-            Quaternion parentRotation = parent != null ? parent.rotation : Quaternion.identity;
-            Vector3 parentScale = parent != null ? parent.lossyScale : Vector3.one;
-
-            List<int> shuffledIndices = Enumerable.Range(0, vertices.Length).OrderBy(x => Random.value).ToList();
-
-            foreach (int i in shuffledIndices)
+            for (int i = 0; i < normals.Length; i++)
             {
                 if (grassCount >= _maxGrassPerChunk) break;
-                if (Random.value > _grassDensity) continue;
 
-                Vector3 v = vertices[i];
-
-                Vector3 candidateA = worldPosition + v;
-                Vector3 candidateB = worldPosition + (parentRotation * Vector3.Scale(v, parentScale));
-                Vector3 candidateC = candidateA;
-                if (chunkTransform != null) candidateC = chunkTransform.TransformPoint(v);
-
-                Vector3 chosenPos;
-                float dA = Vector3.Distance(candidateA, worldPosition);
-                float dB = Vector3.Distance(candidateB, worldPosition);
-                float dC = Vector3.Distance(candidateC, worldPosition);
-
-                if (dA <= _maxPositionDistanceFromChunk || dB <= _maxPositionDistanceFromChunk || dC <= _maxPositionDistanceFromChunk)
-                {
-                    float min = Mathf.Min(dA, dB, dC);
-                    chosenPos = min == dA ? candidateA : (min == dB ? candidateB : candidateC);
-                }
-                else
-                {
-                    float min = Mathf.Min(dA, dB, dC);
-                    chosenPos = min == dA ? candidateA : (min == dB ? candidateB : candidateC);
-                }
-
-                Vector3 normal;
-                if (chunkTransform != null)
-                    normal = chunkTransform.TransformDirection(normals[i]);
-                else
-                    normal = parentRotation * normals[i];
-                normal.Normalize();
-
-                float slopeAngle = Vector3.Angle(normal, Vector3.up);
+                float slopeAngle = Vector3.Angle(normals[i], Vector3.up);
                 if (slopeAngle > _grassMaxSlopeAngle) continue;
 
-                chosenPos.y += 0.05f;
+                if (UnityEngine.Random.value > _grassDensity) continue;
 
-                if (placedPositions.Any(p => Vector3.Distance(p, chosenPos) < _minGrassDistance)) continue;
+                Vector3 vertex = vertices[i];
+                Vector3 position = vertex;
 
-                chosenPos.x += Random.Range(-0.3f, 0.3f);
-                chosenPos.z += Random.Range(-0.3f, 0.3f);
+                position.x += UnityEngine.Random.Range(-0.3f, 0.3f);
+                position.z += UnityEngine.Random.Range(-0.3f, 0.3f);
 
-                Quaternion rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-                float scale = Random.Range(0.8f, 1.2f);
+                Quaternion rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0);
+                float scale = UnityEngine.Random.Range(0.8f, 1.2f);
                 Vector3 scaleVec = new(scale, scale, scale);
-                Matrix4x4 matrix = Matrix4x4.TRS(chosenPos, rotation, scaleVec);
+                Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, scaleVec);
+
+                Vector3Int positionKey = Vector3Int.zero;
+                bool keyIsUnique = false;
+                int maxAttempts = 5;
+
+                for (int attempt = 0; attempt < maxAttempts; attempt++)
+                {
+                    positionKey = GetPositionKey(position, attempt);
+
+                    if (!_instance._allGrassInstances.ContainsKey(positionKey))
+                    {
+                        keyIsUnique = true;
+                        break;
+                    }
+                }
+
+                if (!keyIsUnique) continue;
 
                 GrassInstance instance = new()
                 {
-                    Position = chosenPos,
+                    Position = position,
                     Rotation = rotation,
                     Scale = scaleVec,
                     Matrix = matrix,
                     ChunkCoord = chunkCoord
                 };
 
-                Vector3Int positionKey = new(
-                    Mathf.RoundToInt(chosenPos.x * 100),
-                    Mathf.RoundToInt(chosenPos.y * 100),
-                    Mathf.RoundToInt(chosenPos.z * 100)
-                );
-
-                int attempt = 0;
-                while (_instance._allGrassInstances.ContainsKey(positionKey) && attempt < 5)
-                {
-                    positionKey.y += 1;
-                    attempt++;
-                }
-
-                if (attempt >= 5) continue;
-
                 grassInstances.Add(instance);
+                grassKeys.Add(positionKey);
                 _instance._allGrassInstances[positionKey] = instance;
-                placedPositions.Add(chosenPos);
-
-                if (!_instance._chunkGrassKeys.ContainsKey(chunkCoord))
-                    _instance._chunkGrassKeys[chunkCoord] = new List<Vector3Int>();
-                _instance._chunkGrassKeys[chunkCoord].Add(positionKey);
 
                 combineInstances.Add(new CombineInstance
                 {
@@ -155,17 +123,17 @@ namespace TerrainGenerator
             }
 
             _instance._chunkGrassData[chunkCoord] = grassInstances;
+            _instance._chunkGrassKeys[chunkCoord] = grassKeys;
 
             if (combineInstances.Count > 0)
             {
                 Mesh combinedMesh = new();
                 combinedMesh.CombineMeshes(combineInstances.ToArray(), true);
                 grassFilter.mesh = combinedMesh;
-                combinedMesh.RecalculateBounds();
             }
             else
             {
-                Object.Destroy(grassParent);
+                Destroy(grassParent);
             }
         }
 
@@ -210,7 +178,10 @@ namespace TerrainGenerator
                 if (_allGrassInstances.TryGetValue(key, out GrassInstance instance))
                 {
                     if (_chunkGrassKeys.TryGetValue(instance.ChunkCoord, out var chunkKeys))
+                    {
                         chunkKeys.Remove(key);
+                    }
+
                     _allGrassInstances.Remove(key);
                 }
             }
@@ -229,7 +200,9 @@ namespace TerrainGenerator
         private void RebuildGrassMeshObserversRpc(Vector2Int chunkCoord)
         {
             if (!IsServerInitialized)
+            {
                 RebuildGrassMesh(chunkCoord);
+            }
         }
 
         private void RebuildGrassMesh(Vector2Int chunkCoord)
@@ -241,6 +214,7 @@ namespace TerrainGenerator
             if (grassParent == null) return;
 
             List<CombineInstance> combineInstances = new();
+
             foreach (var key in grassKeys)
             {
                 if (_allGrassInstances.TryGetValue(key, out var instance))
@@ -264,35 +238,30 @@ namespace TerrainGenerator
             }
             else
             {
-                Object.Destroy(grassParent.gameObject);
-                Despawn(grassParent.gameObject);
+                Destroy(grassParent.gameObject);
             }
         }
 
-        static public void RemoveGrassFromChunk(Vector2Int chunkCoord)
+        public static void RemoveGrassFromChunk(Vector2Int chunkCoord)
         {
             if (!_instance._chunkGrassData.TryGetValue(chunkCoord, out var grassInstances)) return;
 
-            foreach (var instance in grassInstances)
+            if (_instance._chunkGrassKeys.TryGetValue(chunkCoord, out var grassKeys))
             {
-                Vector3Int positionKey = new(
-                    Mathf.RoundToInt(instance.Position.x * 100),
-                    Mathf.RoundToInt(instance.Position.y * 100),
-                    Mathf.RoundToInt(instance.Position.z * 100)
-                );
-                _instance._allGrassInstances.Remove(positionKey);
+                foreach (var key in grassKeys)
+                {
+                    _instance._allGrassInstances.Remove(key);
+                }
+                _instance._chunkGrassKeys.Remove(chunkCoord);
             }
 
             if (VoxelTerrain.ChunkObjects.TryGetValue(chunkCoord, out var chunkObj))
             {
                 Transform grassParent = chunkObj.transform.Find("Grass");
-                if (grassParent != null)
-                    Object.Destroy(grassParent.gameObject);
+                if (grassParent != null) Destroy(grassParent.gameObject);
             }
 
             _instance._chunkGrassData.Remove(chunkCoord);
-            if (_instance._chunkGrassKeys.ContainsKey(chunkCoord))
-                _instance._chunkGrassKeys.Remove(chunkCoord);
         }
     }
 }

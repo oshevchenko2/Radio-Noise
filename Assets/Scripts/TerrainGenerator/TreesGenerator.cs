@@ -45,7 +45,7 @@ namespace TerrainGenerator
             if (_instance._chunkTreeInstances.ContainsKey(chunkCoord))
             {
                 _instance.RemoveTreesFromChunk(chunkCoord);
-                GrassGenerator.RemoveGrassFromChunk(chunkCoord);
+                //VoxelTerrain.RemoveGrassFromChunk(chunkCoord);
             }
 
             Vector3[] vertices = topMesh.vertices;

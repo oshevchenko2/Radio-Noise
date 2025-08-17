@@ -318,7 +318,7 @@ namespace TerrainGenerator
                 {
                     GenerateBiomeMap();
                 }
-                
+
                 StartCoroutine(DynamicChunkGeneration());
             }
         }
@@ -326,33 +326,33 @@ namespace TerrainGenerator
         IEnumerator DynamicChunkGeneration()
         {
             float chunkGenRadius = 96f;
-            
+
             int numChunks = WorldSize / _chunkSize;
-            
+
             while (true)
             {
                 var playerPos = Camera.main != null ? Camera.main.transform.position : transform.position;
-            
+
                 Vector2 playerXZ = new(playerPos.x, playerPos.z);
-            
+
                 for (int x = 0; x < numChunks; x++)
                 {
                     for (int z = 0; z < numChunks; z++)
                     {
                         Vector2Int coord = new(x, z);
-            
+
                         if (ChunkObjects.ContainsKey(coord) || _generatingChunks.Contains(coord)) continue;
-            
+
                         Vector3 chunkWorldPos = new(x * _chunkSize + _chunkSize / 2f, 0, z * _chunkSize + _chunkSize / 2f);
-            
+
                         float dist = Vector2.Distance(new Vector2(chunkWorldPos.x, chunkWorldPos.z), playerXZ);
-            
+
                         if (dist > chunkGenRadius) continue;
-            
+
                         _generatingChunks.Add(coord);
-            
+
                         _chunkGenSemaphore.Wait();
-            
+
                         new Thread(() =>
                         {
                             try
@@ -376,12 +376,12 @@ namespace TerrainGenerator
                                 _readyChunks.Enqueue(new ChunkGenResult
                                 {
                                     Coord = coord,
-                                
+
                                     BottomField = bottomField,
                                     CaveField = caveField,
                                     StoneField = stoneField,
                                     TopField = topField,
-                                
+
                                     DominantBiome0 = dominantBiome0,
                                     DominantBiome1 = dominantBiome1
                                 });
@@ -433,7 +433,7 @@ namespace TerrainGenerator
             {
                 int x = i / numChunks;
                 int z = i % numChunks;
-            
+
                 _biomeMap[new Vector2Int(x, z)] = biomeJob.biomeMap[i];
                 // Index "i" is partitioned 2d chunk coordinates
             }
@@ -515,10 +515,10 @@ namespace TerrainGenerator
             {
                 Vector2 pa = new(a.x * _chunkSize, a.y * _chunkSize);
                 Vector2 pb = new(b.x * _chunkSize, b.y * _chunkSize);
-            
+
                 float da = Vector2.SqrMagnitude(pa - new Vector2(playerPos.x, playerPos.z));
                 float db = Vector2.SqrMagnitude(pb - new Vector2(playerPos.x, playerPos.z));
-            
+
                 return da.CompareTo(db);
             });
 
@@ -533,47 +533,47 @@ namespace TerrainGenerator
                 if (dist > chunkGenRadius) continue;
                 if (_generatingChunks.Contains(coord)) continue;
 
-                        _generatingChunks.Add(coord);
-                        _chunkGenSemaphore.Wait();
+                _generatingChunks.Add(coord);
+                _chunkGenSemaphore.Wait();
 
-                        System.Threading.Tasks.Task.Run(() =>
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    try
+                    {
+                        float centerX = coord.x * _chunkSize + _chunkSize / 2f;
+                        float centerZ = coord.y * _chunkSize + _chunkSize / 2f;
+
+                        var weights = SampleBiomeWeights(centerX, centerZ);
+                        var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
+
+                        BiomeType dominantBiome0 = sortedWeights[0].Key;
+                        BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
+
+                        GenerateDensityField(coord,
+                            out float[,,] bottomField,
+                            out float[,,] caveField,
+                            out float[,,] stoneField,
+                            out float[,,] topField,
+                            _chunkHeight);
+
+                        _readyChunks.Enqueue(new ChunkGenResult
                         {
-                            try
-                            {
-                                float centerX = coord.x * _chunkSize + _chunkSize / 2f;
-                                float centerZ = coord.y * _chunkSize + _chunkSize / 2f;
+                            Coord = coord,
 
-                                var weights = SampleBiomeWeights(centerX, centerZ);
-                                var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
+                            BottomField = bottomField,
+                            CaveField = caveField,
+                            StoneField = stoneField,
+                            TopField = topField,
 
-                                BiomeType dominantBiome0 = sortedWeights[0].Key;
-                                BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
-
-                                GenerateDensityField(coord,
-                                    out float[,,] bottomField,
-                                    out float[,,] caveField,
-                                    out float[,,] stoneField,
-                                    out float[,,] topField,
-                                    _chunkHeight);
-
-                                _readyChunks.Enqueue(new ChunkGenResult
-                                {
-                                    Coord = coord,
-
-                                    BottomField = bottomField,
-                                    CaveField = caveField,
-                                    StoneField = stoneField,
-                                    TopField = topField,
-
-                                    DominantBiome0 = dominantBiome0,
-                                    DominantBiome1 = dominantBiome1
-                                });
-                            }
-                            finally
-                            {
-                                _chunkGenSemaphore.Release();
-                            }
+                            DominantBiome0 = dominantBiome0,
+                            DominantBiome1 = dominantBiome1
                         });
+                    }
+                    finally
+                    {
+                        _chunkGenSemaphore.Release();
+                    }
+                });
 
                 countThisFrame++;
 
@@ -1221,11 +1221,11 @@ namespace TerrainGenerator
             for (int i = 0; MarchingCubesTables.TriTable[cubeIndex, i] != -1; i += 3)
             {
                 int vi = vertices.Count;
-            
+
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i]]);
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 1]]);
                 vertices.Add(edgeVertices[MarchingCubesTables.TriTable[cubeIndex, i + 2]]);
-            
+
                 triangles.Add(vi);
                 triangles.Add(vi + 1);
                 triangles.Add(vi + 2);
@@ -1320,7 +1320,7 @@ namespace TerrainGenerator
                     float dist = Vector2.Distance(samplePos, center);
                     float weight = 1f / (dist * dist + 0.01f);
                     // Inverse square distance weighting
-                     
+
                     BiomeType biome = _biomeMap[neighborChunk];
                     if (!weights.ContainsKey(biome))
                         weights[biome] = 0f;
