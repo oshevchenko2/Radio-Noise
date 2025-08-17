@@ -138,6 +138,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff3575c6a3a9a22409e4f763ce5ab346, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5329242550558330631}
+  _networkObjectCache: {fileID: 0}
   _terrain: {fileID: 0}
   rayLength: 100
   yOffset: 0.5
@@ -145,6 +148,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   _loadingScreen: {fileID: 0}
+  _player: {fileID: 0}
 --- !u!114 &301427650546940538
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -266,7 +270,7 @@ MonoBehaviour:
   _teleportThreshold: 1
   <PrefabId>k__BackingField: 4
   <SpawnableCollectionId>k__BackingField: 0
-  <AssetPathHash>k__BackingField: 2314678886198827935
+  <AssetPathHash>k__BackingField: 10840236454460966456
   <SceneId>k__BackingField: 0
   SerializedTransformProperties:
     Position: {x: 1.5174332, y: 1.289, z: -21.510223}
@@ -605,6 +609,9 @@ MonoBehaviour:
   _cubeGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
   _cylinderGameObject: {fileID: 8982884938002949884, guid: c8add14eb342b224f82b2ac1749f4c32, type: 3}
   _prismGameObject: {fileID: 5790655706589245261, guid: f4042219023de9e41bddcee4e42a9b30, type: 3}
+  _grassRemovalRadius: 1.5
+  _cam: {fileID: 0}
+  worldShapeManager: {fileID: 0}
 --- !u!1652712579 &1574309447967142544
 MultiplayerRolesData:
   m_ObjectHideFlags: 2
