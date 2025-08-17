@@ -1749,15 +1749,15 @@ MonoBehaviour:
   _mountainsMaterial: {fileID: 2100000, guid: 2a6c63c1bcb7fe44bbc2be083c8a9a6d, type: 2}
   _stoneMaterial: {fileID: 2100000, guid: f1888d1f95dbd7247955beee78a3e849, type: 2}
   _waterMaterial: {fileID: 2100000, guid: 1692d5d1f1c0c334d988e1028f01e295, type: 2}
-  _grassMesh: {fileID: 8254687373856176130, guid: 1bfb0c0dd341ef34f9a7ae0c5d2b0002, type: 3}
-  _grassMaterial: {fileID: 2100000, guid: c937f40d29a843c428f50330ce3aeab8, type: 2}
   _treePrefabs:
-  - TreePrefab: {fileID: 6401621307345836589, guid: 767fb5f65d5fbb048a9d8df073928198, type: 3}
-    SpawnProbability: 5
-  - TreePrefab: {fileID: 4887503718510121109, guid: 46a15a989f44a3049a6f415b76c8147a, type: 3}
-    SpawnProbability: 5
-  - TreePrefab: {fileID: 7686264170982096908, guid: e20139e79ed4b194db9ada8db00884d7, type: 3}
-    SpawnProbability: 5
+  - TreePrefab: {fileID: 2481583989056054685, guid: 767fb5f65d5fbb048a9d8df073928198, type: 3}
+    SpawnProbability: 1
+  - TreePrefab: {fileID: 3573882965635482566, guid: 46a15a989f44a3049a6f415b76c8147a, type: 3}
+    SpawnProbability: 1
+  - TreePrefab: {fileID: 3916543953542448931, guid: e20139e79ed4b194db9ada8db00884d7, type: 3}
+    SpawnProbability: 1
+  _grassMesh: {fileID: 8254687373856176130, guid: 1bfb0c0dd341ef34f9a7ae0c5d2b0002, type: 3}
+  _grassMaterial: {fileID: 2100000, guid: 2205e203b3a21084eb02bdbfff227816, type: 2}
 --- !u!1652712579 &1310858876
 MultiplayerRolesData:
   m_ObjectHideFlags: 2

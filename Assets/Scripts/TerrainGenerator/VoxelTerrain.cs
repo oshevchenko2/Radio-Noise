@@ -62,35 +62,11 @@ namespace TerrainGenerator
         // ToDo: Add more realistic water
         // ToDo: Fix water, coz it appears too low and the height only changes in materials from shader
 
-        [SerializeField] private Mesh _grassMesh;
-        [SerializeField] private Material _grassMaterial;
-
-        private const float _grassDensity = 0.1f;
-        private const float _grassMaxSlopeAngle = 90f;
-
-        private const int _maxGrassPerChunk = 100;
-
-        private readonly Dictionary<Vector2Int, List<GrassInstance>> _chunkGrassData = new();
-        private readonly Dictionary<Vector3Int, GrassInstance> _allGrassInstances = new();
-
-        // All grass preferences
-
-        [SerializeField] private TreePrefabData[] _treePrefabs;
-
-        private const float _treeDensity = 0.01f;
-        private const float _treeMaxSlopeAngle = 90f;
-
-        private const int _maxTreesPerChunk = 30;
-
-        private Dictionary<Vector2Int, List<GameObject>> _chunkTreeInstances = new();
-
-        // All tree preferences
-
         private Shader _shader;
 
         //Shader 2 Find, if materials above missing
 
-        private readonly Dictionary<Vector2Int, GameObject> _chunkObjects = new();
+        public static readonly Dictionary<Vector2Int, GameObject> ChunkObjects = new();
 
         // Dictionary 4 all chunkObj on & 4 scene
 
@@ -115,7 +91,7 @@ namespace TerrainGenerator
         public float GetSeedZ() { return _seedZ; }
 
         public Dictionary<Vector2Int, BiomeType> GetBiomeMap() { return _biomeMap; }
-        public Dictionary<Vector2Int, GameObject> GetChunks() { return _chunkObjects; }
+        public Dictionary<Vector2Int, GameObject> GetChunks() { return ChunkObjects; }
 
         public void SetSeed(float x, float z) { _seedX = x; _seedZ = z; }
 
@@ -140,7 +116,7 @@ namespace TerrainGenerator
         private readonly Dictionary<Vector2Int, InstancedChunkData> _instancedChunks = new();
         private readonly Dictionary<Vector2Int, ChunkData> _modifiedChunks = new();
 
-        private float _instanceDistance = 128f;
+        private readonly float _instanceDistance = 128f;
 
         #endregion
 
@@ -149,11 +125,11 @@ namespace TerrainGenerator
         #region Save-Load Sys
         public IEnumerator DestroyAllChunks()
         {
-            while (_chunkObjects.Count > 0)
+            while (ChunkObjects.Count > 0)
             {
-                var key = _chunkObjects.Keys.First();
-                Destroy(_chunkObjects[key]);
-                _chunkObjects.Remove(key);
+                var key = ChunkObjects.Keys.First();
+                Destroy(ChunkObjects[key]);
+                ChunkObjects.Remove(key);
             }
 
             yield return null;
@@ -171,7 +147,7 @@ namespace TerrainGenerator
             // A GameObject of a chunk with a readable name is created
             chunkObject.transform.position = new Vector3(chunkCoord.x * _chunkSize, 0, chunkCoord.y * _chunkSize);
             // Puts it in the world on a grid: chunk coordinates x chunk size.
-            _chunkObjects[chunkCoord] = chunkObject;
+            ChunkObjects[chunkCoord] = chunkObject;
             // Saves the reference to a dictionary so that I can quickly find and overwrite this chunk later on
 
             float centerX = chunkCoord.x * _chunkSize + _chunkSize / 2f;
@@ -261,7 +237,7 @@ namespace TerrainGenerator
             }
             topMC.sharedMesh = topMF.mesh;
 
-            GenerateGrassForChunk(
+            GrassGenerator.GenerateGrassForChunk(
                 chunkCoord: chunkCoord,
                 topMesh: topMF.mesh,
                 dominantBiome0: dominantBiome0,
@@ -270,7 +246,7 @@ namespace TerrainGenerator
                 worldPosition: chunkObject.transform.position
             );
 
-            GenerateTreesForChunk(
+            TreesGenerator.GenerateTreesForChunk(
                 chunkCoord: chunkCoord,
                 topMesh: topMF.mesh,
                 dominantBiome0: dominantBiome0,
@@ -365,7 +341,7 @@ namespace TerrainGenerator
                     {
                         Vector2Int coord = new(x, z);
             
-                        if (_chunkObjects.ContainsKey(coord) || _generatingChunks.Contains(coord)) continue;
+                        if (ChunkObjects.ContainsKey(coord) || _generatingChunks.Contains(coord)) continue;
             
                         Vector3 chunkWorldPos = new(x * _chunkSize + _chunkSize / 2f, 0, z * _chunkSize + _chunkSize / 2f);
             
@@ -557,47 +533,47 @@ namespace TerrainGenerator
                 if (dist > chunkGenRadius) continue;
                 if (_generatingChunks.Contains(coord)) continue;
 
-                _generatingChunks.Add(coord);
-                _chunkGenSemaphore.Wait();
+                        _generatingChunks.Add(coord);
+                        _chunkGenSemaphore.Wait();
 
-                new Thread(() =>
-                {
-                    try
-                    {
-                        float centerX = coord.x * _chunkSize + _chunkSize / 2f;
-                        float centerZ = coord.y * _chunkSize + _chunkSize / 2f;
-
-                        var weights = SampleBiomeWeights(centerX, centerZ);
-                        var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
-
-                        BiomeType dominantBiome0 = sortedWeights[0].Key;
-                        BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
-
-                        GenerateDensityField(coord,
-                            out float[,,] bottomField,
-                            out float[,,] caveField,
-                            out float[,,] stoneField,
-                            out float[,,] topField,
-                            _chunkHeight);
-
-                        _readyChunks.Enqueue(new ChunkGenResult
+                        System.Threading.Tasks.Task.Run(() =>
                         {
-                            Coord = coord,
+                            try
+                            {
+                                float centerX = coord.x * _chunkSize + _chunkSize / 2f;
+                                float centerZ = coord.y * _chunkSize + _chunkSize / 2f;
 
-                            BottomField = bottomField,
-                            CaveField = caveField,
-                            StoneField = stoneField,
-                            TopField = topField,
+                                var weights = SampleBiomeWeights(centerX, centerZ);
+                                var sortedWeights = weights.OrderByDescending(pair => pair.Value).ToList();
 
-                            DominantBiome0 = dominantBiome0,
-                            DominantBiome1 = dominantBiome1
+                                BiomeType dominantBiome0 = sortedWeights[0].Key;
+                                BiomeType dominantBiome1 = sortedWeights.Count > 1 ? sortedWeights[1].Key : dominantBiome0;
+
+                                GenerateDensityField(coord,
+                                    out float[,,] bottomField,
+                                    out float[,,] caveField,
+                                    out float[,,] stoneField,
+                                    out float[,,] topField,
+                                    _chunkHeight);
+
+                                _readyChunks.Enqueue(new ChunkGenResult
+                                {
+                                    Coord = coord,
+
+                                    BottomField = bottomField,
+                                    CaveField = caveField,
+                                    StoneField = stoneField,
+                                    TopField = topField,
+
+                                    DominantBiome0 = dominantBiome0,
+                                    DominantBiome1 = dominantBiome1
+                                });
+                            }
+                            finally
+                            {
+                                _chunkGenSemaphore.Release();
+                            }
                         });
-                    }
-                    finally
-                    {
-                        _chunkGenSemaphore.Release();
-                    }
-                }).Start();
 
                 countThisFrame++;
 
@@ -650,7 +626,7 @@ namespace TerrainGenerator
 
             }
 
-            foreach (var kvp in _chunkObjects)
+            foreach (var kvp in ChunkObjects)
             {
                 var go = kvp.Value;
 
@@ -660,7 +636,7 @@ namespace TerrainGenerator
                 }
             }
 
-            foreach (var kvp in _chunkObjects)
+            foreach (var kvp in ChunkObjects)
             {
                 var go = kvp.Value;
 
@@ -684,7 +660,7 @@ namespace TerrainGenerator
             {
                 if (_instancedChunks.TryGetValue(coord, out var data))
                 {
-                    if (_chunkObjects.TryGetValue(coord, out var oldGo) && oldGo != null)
+                    if (ChunkObjects.TryGetValue(coord, out var oldGo) && oldGo != null)
                     {
                         oldGo.SetActive(true);
                         oldGo.transform.position = data.matrix.GetColumn(3);
@@ -696,7 +672,7 @@ namespace TerrainGenerator
                         if (processedToGameObject >= 1) break;
                         continue;
                     }
-                    if (_chunkObjects.ContainsKey(coord)) continue;
+                    if (ChunkObjects.ContainsKey(coord)) continue;
 
                     if (_modifiedChunks.TryGetValue(coord, out var chunkData))
                     {
@@ -713,7 +689,7 @@ namespace TerrainGenerator
                         var mr = go.AddComponent<MeshRenderer>();
                         mr.material = data.material;
 
-                        _chunkObjects[coord] = go;
+                        ChunkObjects[coord] = go;
                     }
 
                     _instancedChunks.Remove(coord);
@@ -724,7 +700,7 @@ namespace TerrainGenerator
             }
             foreach (var coord in toInstance)
             {
-                if (_chunkObjects.TryGetValue(coord, out var go))
+                if (ChunkObjects.TryGetValue(coord, out var go))
                 {
                     var mf = go.GetComponent<MeshFilter>();
                     var mr = go.GetComponent<MeshRenderer>();
@@ -749,7 +725,7 @@ namespace TerrainGenerator
 
             while (_readyChunks.TryDequeue(out var result))
             {
-                if (_chunkObjects.ContainsKey(result.Coord) || _instancedChunks.ContainsKey(result.Coord))
+                if (ChunkObjects.ContainsKey(result.Coord) || _instancedChunks.ContainsKey(result.Coord))
                 {
                     _generatingChunks.Remove(result.Coord);
 
@@ -789,7 +765,7 @@ namespace TerrainGenerator
                 int layerId = LayerMask.NameToLayer("Chunk");
                 GameObject chunkObject = new($"Chunk_{result.Coord.x}_{result.Coord.y}");
                 chunkObject.transform.position = new Vector3(result.Coord.x * _chunkSize, 0, result.Coord.y * _chunkSize);
-                _chunkObjects[result.Coord] = chunkObject;
+                ChunkObjects[result.Coord] = chunkObject;
 
                 foreach (var dir in directions)
                 {
@@ -868,7 +844,7 @@ namespace TerrainGenerator
                 }
                 topMC.sharedMesh = topMF.mesh;
 
-                GenerateTreesForChunk(
+                TreesGenerator.GenerateTreesForChunk(
                     chunkCoord: result.Coord,
                     topMesh: topMF.mesh,
                     dominantBiome0: result.DominantBiome0,
@@ -877,7 +853,7 @@ namespace TerrainGenerator
                     worldPosition: chunkObject.transform.position
                 );
 
-                GenerateGrassForChunk(
+                GrassGenerator.GenerateGrassForChunk(
                     chunkCoord: result.Coord,
                     topMesh: topMF.mesh,
                     dominantBiome0: result.DominantBiome0,
@@ -890,7 +866,7 @@ namespace TerrainGenerator
                 {
                     Vector2Int neighborCoord = result.Coord + dir;
 
-                    if (!_chunkObjects.ContainsKey(neighborCoord))
+                    if (!ChunkObjects.ContainsKey(neighborCoord))
                     {
                         CreateChunkWall(result.Coord, dir, chunkObject);
                     }
@@ -904,356 +880,6 @@ namespace TerrainGenerator
             }
         }
 
-        #region Grass
-        private void GenerateGrassForChunk(
-            Vector2Int chunkCoord,
-            Mesh topMesh,
-            BiomeType dominantBiome0,
-            BiomeType dominantBiome1,
-            Transform parent,
-            Vector3 worldPosition)
-        {
-            if (!IsGrassBiome(dominantBiome0) && !IsGrassBiome(dominantBiome1)) return;
-            if (_grassMesh == null || _grassMaterial == null) return;
-
-            // Remove old grass if exists
-            if (_chunkGrassData.ContainsKey(chunkCoord))
-            {
-                RemoveGrassFromChunk(chunkCoord);
-            }
-
-            Vector3[] vertices = topMesh.vertices;
-            Vector3[] normals = topMesh.normals;
-
-            List<GrassInstance> grassInstances = new();
-            List<CombineInstance> combineInstances = new();
-
-            GameObject grassParent = new("Grass");
-            grassParent.transform.SetParent(parent);
-            grassParent.transform.localPosition = Vector3.zero;
-
-            MeshFilter grassFilter = grassParent.AddComponent<MeshFilter>();
-            MeshRenderer grassRenderer = grassParent.AddComponent<MeshRenderer>();
-            grassRenderer.material = _grassMaterial;
-
-            int grassCount = 0;
-            for (int i = 0; i < normals.Length; i++)
-            {
-                if (grassCount >= _maxGrassPerChunk) break;
-
-                float slopeAngle = Vector3.Angle(normals[i], Vector3.up);
-                if (slopeAngle > _grassMaxSlopeAngle) continue;
-
-                if (UnityEngine.Random.value > _grassDensity) continue;
-
-                Vector3 vertex = vertices[i];
-                Vector3 position = worldPosition + vertex;
-
-                // Random variations
-                position.x += UnityEngine.Random.Range(-0.3f, 0.3f);
-                position.z += UnityEngine.Random.Range(-0.3f, 0.3f);
-                
-                Quaternion rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0);
-                float scale = UnityEngine.Random.Range(0.8f, 1.2f);
-                Vector3 scaleVec = new(scale, scale, scale);
-                Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, scaleVec);
-                
-                // Create instance
-                GrassInstance instance = new()
-                {
-                    Position = position,
-                    Rotation = rotation,
-                    Scale = scaleVec,
-                    Matrix = matrix,
-                    ChunkCoord = chunkCoord
-                };
-
-                Vector3Int positionKey = Vector3Int.zero;
-                bool keyIsUnique = false;
-                int maxAttempts = 5;
-                
-                for (int attempt = 0; attempt < maxAttempts; attempt++)
-                {
-                    positionKey = new Vector3Int(
-                        Mathf.RoundToInt(position.x * 100) + attempt,
-                        Mathf.RoundToInt(position.y * 100),
-                        Mathf.RoundToInt(position.z * 100)
-                    );
-
-                    if (!_allGrassInstances.ContainsKey(positionKey))
-                    {
-                        keyIsUnique = true;
-
-                        break;
-                    }
-                }
-
-                if (!keyIsUnique) continue;
-
-                // Save instance
-                grassInstances.Add(instance);
-                _allGrassInstances[positionKey] = instance;
-                
-                // For combined mesh
-                combineInstances.Add(new CombineInstance
-                {
-                    mesh = _grassMesh,
-                    transform = matrix
-                });
-
-                grassCount++;
-            }
-
-            // Save grass data
-            _chunkGrassData[chunkCoord] = grassInstances;
-            
-            // Create combined mesh
-            if (combineInstances.Count > 0)
-            {
-                Mesh combinedMesh = new();
-                combinedMesh.CombineMeshes(combineInstances.ToArray(), true);
-                grassFilter.mesh = combinedMesh;
-            }
-            else
-            {
-                Destroy(grassParent);
-            }
-        }
-
-        public struct GrassInstance
-        {
-            public Vector3 Position;
-            public Quaternion Rotation;
-            public Vector3 Scale;
-            public Matrix4x4 Matrix;
-            public Vector2Int ChunkCoord;
-        }
-
-        private bool IsGrassBiome(BiomeType biome)
-        {
-            return biome switch
-            {
-                BiomeType.Plains or BiomeType.Forest => true,
-                _ => false
-            };
-        }
-        
-        private Dictionary<Vector2Int, List<Vector3Int>> _chunkGrassKeys = new();
-
-        public void RemoveGrassInArea(Vector3 position, float radius)
-        {
-            if (!IsServerInitialized) return;
-            
-            float sqrRadius = radius * radius;
-            HashSet<Vector2Int> affectedChunks = new();
-            List<Vector3Int> keysToRemove = new();
-
-            foreach (var kvp in _allGrassInstances)
-            {
-                float sqrDistance = (kvp.Value.Position - position).sqrMagnitude;
-                if (sqrDistance <= sqrRadius)
-                {
-                    keysToRemove.Add(kvp.Key);
-                    affectedChunks.Add(kvp.Value.ChunkCoord);
-                }
-            }
-
-            foreach (var key in keysToRemove)
-            {
-                if (_allGrassInstances.TryGetValue(key, out GrassInstance instance))
-                {
-                    if (_chunkGrassKeys.TryGetValue(instance.ChunkCoord, out var chunkKeys))
-                    {
-                        chunkKeys.Remove(key);
-                    }
-
-                    _allGrassInstances.Remove(key);
-                }
-            }
-
-            foreach (var chunkCoord in affectedChunks)
-            {
-                if (_chunkObjects.TryGetValue(chunkCoord, out var chunkObj))
-                {
-                    RebuildGrassMesh(chunkCoord);
-                    RebuildGrassMeshObserversRpc(chunkCoord);
-                }
-            }
-        }
-        
-        [ObserversRpc]
-        private void RebuildGrassMeshObserversRpc(Vector2Int chunkCoord)
-        {
-            if (!IsServerInitialized)
-            {
-                RebuildGrassMesh(chunkCoord);
-            }
-        }
-
-        private void RebuildGrassMesh(Vector2Int chunkCoord)
-        {
-            if (!_chunkObjects.TryGetValue(chunkCoord, out var chunkObj)) return;
-            if (!_chunkGrassKeys.TryGetValue(chunkCoord, out var grassKeys)) return;
-
-            Transform grassParent = chunkObj.transform.Find("Grass");
-            if (grassParent == null) return;
-
-            List<CombineInstance> combineInstances = new();
-            
-            foreach (var key in grassKeys)
-            {
-                if (_allGrassInstances.TryGetValue(key, out var instance))
-                {
-                    combineInstances.Add(new CombineInstance
-                    {
-                        mesh = _grassMesh,
-                        transform = instance.Matrix
-                    });
-                }
-            }
-
-            MeshFilter grassFilter = grassParent.GetComponent<MeshFilter>();
-            if (grassFilter == null) return;
-
-            if (combineInstances.Count > 0)
-            {
-                Mesh combinedMesh = new();
-                combinedMesh.CombineMeshes(combineInstances.ToArray(), true);
-                grassFilter.mesh = combinedMesh;
-            }
-            else
-            {
-                Destroy(grassParent.gameObject);
-            }
-        }
-
-        private void RemoveGrassFromChunk(Vector2Int chunkCoord)
-        {
-            if (!_chunkGrassData.TryGetValue(chunkCoord, out var grassInstances)) return;
-            
-            foreach (var instance in grassInstances)
-            {
-                Vector3Int positionKey = new(
-                    Mathf.RoundToInt(instance.Position.x * 10),
-                    Mathf.RoundToInt(instance.Position.y * 10),
-                    Mathf.RoundToInt(instance.Position.z * 10)
-                );
-                _allGrassInstances.Remove(positionKey);
-            }
-
-            if (_chunkObjects.TryGetValue(chunkCoord, out var chunkObj))
-            {
-                Transform grassParent = chunkObj.transform.Find("Grass");
-                if (grassParent != null) Destroy(grassParent.gameObject);
-            }
-
-            _chunkGrassData.Remove(chunkCoord);
-        }
-        #endregion
-        #region Trees
-
-        private void GenerateTreesForChunk(
-            Vector2Int chunkCoord, 
-            Mesh topMesh,
-            BiomeType dominantBiome0,
-            BiomeType dominantBiome1,
-            Transform parent,
-            Vector3 worldPosition)
-        {
-            Debug.Log($"Generating trees for chunk {chunkCoord}");
-
-            if (!IsTreeBiome(dominantBiome0) && !IsTreeBiome(dominantBiome1))
-            {
-                Debug.Log($"Skipped - not tree biome: {dominantBiome0}/{dominantBiome1}");
-                return;
-            }
-            if (_treePrefabs == null || _treePrefabs.Length == 0)
-            {
-                Debug.LogError("Tree prefabs not assigned!");
-                return;
-            }
-            if (_chunkTreeInstances.ContainsKey(chunkCoord))
-            {
-                RemoveTreesFromChunk(chunkCoord);
-            }
-
-            Vector3[] vertices = topMesh.vertices;
-            Vector3[] normals = topMesh.normals;
-
-            List<GameObject> treeInstances = new();
-
-            GameObject treesParent = new("Trees");
-            treesParent.transform.SetParent(parent);
-            treesParent.transform.localPosition = Vector3.zero;
-
-            int treeCount = 0;
-            for (int i = 0; i < vertices.Length && treeCount < _maxTreesPerChunk; i++)
-            {
-                Vector3 normal = normals[i];
-                float slopeAngle = Vector3.Angle(normal, Vector3.up);
-                if (slopeAngle > _treeMaxSlopeAngle) continue;
-                
-                if (UnityEngine.Random.value > _treeDensity) continue;
-
-                Vector3 position = worldPosition + vertices[i];
-                position.y += 0.2f;
-                
-                TreePrefabData treeData = GetRandomTreeType();
-                GameObject treePrefab = treeData.TreePrefab;
-                
-                if (treePrefab == null) continue;
-
-                GameObject treeInstance = Instantiate(
-                    treePrefab,
-                    position,
-                    Quaternion.Euler(0, UnityEngine.Random.Range(0, 360f), 0),
-                    treesParent.transform
-                );
-
-                float scale = UnityEngine.Random.Range(0.8f, 1.2f);
-                treeInstance.transform.localScale = Vector3.one * scale;
-                
-                treeInstances.Add(treeInstance);
-                treeCount++;
-            }
-
-            _chunkTreeInstances[chunkCoord] = treeInstances;
-    
-            Debug.Log($"Spawned {treeCount} trees in chunk {chunkCoord}");
-        }
-
-        private TreePrefabData GetRandomTreeType()
-        {
-            float totalProbability = _treePrefabs.Sum(t => t.SpawnProbability);
-            float randomPoint = UnityEngine.Random.value * totalProbability;
-
-            float currentProbability = 0f;
-            foreach (var type in _treePrefabs)
-            {
-                currentProbability += type.SpawnProbability;
-                if (randomPoint <= currentProbability)
-                    return type;
-            }
-
-            return _treePrefabs[0];
-        }
-
-        private void RemoveTreesFromChunk(Vector2Int chunkCoord)
-        {
-            if (_chunkObjects.TryGetValue(chunkCoord, out var chunkObj))
-            {
-                Transform treesParent = chunkObj.transform.Find("Trees");
-                if (treesParent != null)
-                    Destroy(treesParent.gameObject);
-            }
-        }
-
-        private bool IsTreeBiome(BiomeType biome)
-        {
-            return biome == BiomeType.Forest || biome == BiomeType.Plains;
-        }
-
-        #endregion
         private void OnRenderObject()
         {
             foreach (var kvp in _instancedChunks)
