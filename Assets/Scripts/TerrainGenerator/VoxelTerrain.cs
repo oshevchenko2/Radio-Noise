@@ -109,9 +109,9 @@ namespace TerrainGenerator
         private readonly ConcurrentQueue<ChunkGenResult> _readyChunks = new();
         private readonly HashSet<Vector2Int> _generatingChunks = new();
 
-        private readonly SemaphoreSlim _chunkGenSemaphore = new(8);
+        private readonly SemaphoreSlim _chunkGenSemaphore = new(16);
 
-        private const int MaxChunksPerFrame = 3;
+        private const int MaxChunksPerFrame = 16;
 
         private readonly Dictionary<Vector2Int, InstancedChunkData> _instancedChunks = new();
         private readonly Dictionary<Vector2Int, ChunkData> _modifiedChunks = new();
