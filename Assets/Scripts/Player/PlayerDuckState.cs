@@ -63,7 +63,7 @@ namespace Player
 
         public override void Enter()
         {
-            if (_controller == null) _controller = stateMachine.GetComponent<CharacterController>();
+            _controller ??= stateMachine.GetComponent<CharacterController>();
             if (_duckAction.IsPressed()) StartDuck();
         }
 

@@ -20,10 +20,10 @@ namespace Player
             _lookAction.Enable();
         }
 
-        public override void OnStartNetwork()
+        public override void OnStartClient()
         {
-            base.OnStartNetwork();
-            if (base.Owner == null || !base.Owner.IsLocalClient)
+            base.OnStartClient();
+            if (!IsOwner || !Owner.IsLocalClient)
             {
                 cameraHolder.gameObject.SetActive(false);
                 return;
