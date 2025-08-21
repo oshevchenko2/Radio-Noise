@@ -13,6 +13,7 @@ namespace Player
 
         private readonly InputAction _moveAction;
         private readonly InputAction _jumpAction;
+        private readonly InputAction _duckAction;
 
         public PlayerGroundedState(PlayerMovementStateMachine stateMachine) : base(stateMachine)
         {
@@ -27,6 +28,11 @@ namespace Player
             _jumpAction.AddBinding("<Keyboard>/space");
             _jumpAction.AddBinding("<Gamepad>/buttonSouth");
 
+            _duckAction = new InputAction(type: InputActionType.Button);
+            _duckAction.AddBinding("<Keyboard>/leftCtrl");
+            _duckAction.AddBinding("<Gamepad>/buttonEast");
+
+            _duckAction.Enable();
             _moveAction.Enable();
             _jumpAction.Enable();
         }
@@ -39,7 +45,7 @@ namespace Player
         public override void Update()
         {
             if (!IsOwner) return;
-            
+
             Vector2 input = _moveAction.ReadValue<Vector2>();
             Vector3 moveDirection = (stateMachine.transform.right * input.x + stateMachine.transform.forward * input.y).normalized;
 
@@ -58,6 +64,11 @@ namespace Player
             if (_jumpAction.triggered)
             {
                 stateMachine.SetState(new PlayerJumpState(stateMachine, finalMove * 0.1f));
+            }
+
+            if (_duckAction.triggered)
+            {
+                stateMachine.SetState(new PlayerDuckState(stateMachine));
             }
         }
 
