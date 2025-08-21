@@ -1845,7 +1845,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 1310858877}
   _networkObjectCache: {fileID: 0}
   _chunkSize: 32
-  WorldSize: 512
+  WorldSize: 32
   _isoLevel: 8
   _desertMaterial: {fileID: 2100000, guid: 711174b98d2b3d84782c713f9caf5714, type: 2}
   _plainsMaterial: {fileID: 2100000, guid: 4a189cbca60c9fa41ae1c0a94d1671be, type: 2}
